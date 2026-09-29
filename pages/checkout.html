@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Checkout demonstrativo da FSI Studio.">
+  <title>Finalizar pedido | FSI Studio</title>
+  <link rel="stylesheet" href="../css/loja.css">
+</head>
+<body>
+  <div class="announcement">FSI Studio <span>•</span> finalização demonstrativa</div>
+  <main class="store checkout-page">
+    <header class="store-header">
+      <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
+      <nav class="store-nav" aria-label="Navegação da loja"><a href="design-de-moda-com-proposito.html">Loja</a><a href="vestir.html">Vestir</a><a href="acessorios.html">Acessórios</a></nav>
+      <div class="store-actions"><a class="icon-button" href="../index.html" aria-label="Página inicial">⌂</a><a class="tracking-nav-button" href="acompanhar-pedido.html" title="Acompanhar pedido" aria-label="Acompanhar pedido"><span aria-hidden="true">◎</span><span>Acompanhar</span></a><a class="icon-button" href="sacola.html" aria-label="Sacola">♡ <span class="bag-count">0</span></a></div>
+    </header>
+
+    <p class="product-breadcrumb"><a href="design-de-moda-com-proposito.html">Loja</a> / <a href="sacola.html">Sacola</a> / Entrega e pagamento</p>
+    <section class="checkout-heading"><p class="kicker">FSI Studio · demonstração</p><h1>Finalizar pedido</h1><p>Informe os dados de entrega e escolha uma forma de pagamento para ver a confirmação simulada.</p></section>
+    <p class="demo-notice" role="note"><strong>Sem cobrança real.</strong> Este checkout não coleta dados de cartão, não processa pagamentos e não envia produtos.</p>
+
+    <section class="checkout-empty is-hidden" data-checkout-empty>
+      <p class="kicker">Nenhum item na sacola</p>
+      <h2>Adicione um produto antes de continuar.</h2>
+      <a class="store-button" href="vestir.html">Voltar à loja <span aria-hidden="true">↗</span></a>
+    </section>
+
+    <form class="checkout-form is-hidden" data-checkout-form>
+      <div class="checkout-fields">
+        <section class="checkout-section" aria-labelledby="contact-heading">
+          <p class="kicker">Etapa 01</p><h2 id="contact-heading">Seus dados</h2>
+          <label class="form-field">Nome completo<input name="name" autocomplete="name" required maxlength="100"></label>
+          <div class="form-row">
+            <label class="form-field">E-mail<input type="email" name="email" autocomplete="email" required maxlength="120"></label>
+            <label class="form-field">Telefone<input type="tel" name="phone" autocomplete="tel" required maxlength="24"></label>
+          </div>
+        </section>
+
+        <section class="checkout-section" aria-labelledby="delivery-heading">
+          <p class="kicker">Etapa 02</p><h2 id="delivery-heading">Endereço de entrega</h2>
+          <div class="form-row form-row-region">
+            <label class="form-field">Estado<input name="region" list="state-options" autocomplete="address-level1" required maxlength="40" aria-describedby="state-feedback"><datalist id="state-options" data-state-options></datalist></label>
+            <label class="form-field">Cidade<input name="city" list="city-options" autocomplete="address-level2" required maxlength="80" aria-describedby="city-feedback" disabled><datalist id="city-options" data-city-options></datalist></label>
+          </div>
+          <p class="address-suggestion-feedback" id="state-feedback" data-state-feedback role="status" aria-live="polite">Digite e selecione um estado.</p>
+          <p class="address-suggestion-feedback" id="city-feedback" data-city-feedback role="status" aria-live="polite">Selecione um estado para ver as cidades disponíveis.</p>
+          <div class="form-row form-row-address">
+            <label class="form-field">CEP<input name="postal-code" inputmode="numeric" autocomplete="postal-code" required minlength="8" maxlength="9" pattern="[0-9\-]{8,9}" title="Informe um CEP com 8 dígitos"></label>
+            <button class="store-button shipping-calculate" type="button" data-calculate-shipping>Calcular frete</button>
+          </div>
+          <p class="shipping-feedback" data-shipping-feedback role="status" aria-live="polite">Informe o CEP para estimar o frete.</p>
+          <label class="form-field">Rua<input name="address" autocomplete="street-address" required maxlength="120"></label>
+          <div class="form-row">
+            <label class="form-field">Número<input name="number" required maxlength="12"></label>
+            <label class="form-field">Complemento <span class="optional-label">opcional</span><input name="complement" autocomplete="address-line2" maxlength="80"></label>
+          </div>
+          <label class="form-field">Bairro<input name="neighborhood" required maxlength="80"></label>
+          <p class="summary-note">O CEP será consultado na BrasilAPI para identificar a cidade e estimar a distância. O restante do endereço não é enviado a esse serviço.</p>
+        </section>
+
+        <fieldset class="checkout-section payment-section">
+          <legend><span class="kicker">Etapa 03</span><strong>Forma de pagamento</strong></legend>
+          <label class="payment-option"><input type="radio" name="payment-method" value="Pix (simulação)" checked><span><strong>Pix</strong><small>Simulação, sem geração de código ou cobrança</small></span></label>
+          <label class="payment-option"><input type="radio" name="payment-method" value="Cartão de crédito (simulação)"><span><strong>Cartão de crédito</strong><small>Simulação, sem solicitar ou armazenar dados do cartão</small></span></label>
+        </fieldset>
+      </div>
+
+      <aside class="checkout-summary" aria-label="Resumo do pedido">
+        <h2>Seu pedido</h2>
+        <div class="checkout-items" data-checkout-items></div>
+        <p><span>Subtotal</span><strong data-checkout-subtotal>R$ 0,00</strong></p>
+        <p><span>Frete estimado</span><strong data-shipping-total>Calcule pelo CEP</strong></p>
+        <p class="checkout-grand-total"><span>Total estimado</span><strong data-checkout-total>Aguardando CEP</strong></p>
+        <p class="summary-note" data-shipping-summary>Estimativa pela distância desde Curitiba (PR); o valor não substitui a cotação de uma transportadora.</p>
+        <button class="store-button checkout-submit" type="submit" disabled>Confirmar demonstração <span aria-hidden="true">↗</span></button>
+        <a class="back-to-bag" href="sacola.html">Voltar à sacola</a>
+        <p class="checkout-feedback" data-store-feedback role="status" aria-live="polite"></p>
+      </aside>
+    </form>
+    <footer class="store-footer"><a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a><p>Moda com propósito, presença com verdade.</p><p>© 2026 FSI Studio</p></footer>
+  </main>
+  <script src="../js/store.js" defer></script>
+</body>
+</html>
