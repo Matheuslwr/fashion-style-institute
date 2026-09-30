@@ -3,100 +3,255 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Fashion Style Institute: estilo, design de moda e consultoria de imagem.">
-  <title>Fashion Style Institute | Escolha a sua transformação</title>
+  <meta name="theme-color" content="#4f2d3b">
+  <meta name="description" content="Fashion Style Institute: estilo, consultoria de imagem, loja FSI Studio e presença com propósito.">
+  <title>Fashion Style Institute | Estilo com presença e propósito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/home.css">
 </head>
 <body>
-  <main class="home" aria-label="Fashion Style Institute">
-    <nav class="topbar" aria-label="Navegação principal">
-      <a class="brand" href="index.html">
-        <span class="brand-mark" aria-hidden="true">F</span>
-        <span>Fashion Style Institute</span>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="Fashion Style Institute home">
+        <img src="img/fsi-monograma.svg" alt="Monograma FSI" class="brand-mark">
+        <span class="brand-text">
+          <strong>Fashion Style</strong>
+          <small>Institute</small>
+        </span>
       </a>
-      <p class="top-note">Estilo com intenção</p>
-    </nav>
 
-    <header class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Uma nova etapa começa aqui</p>
-        <h1>Vista a sua <em>melhor versão.</em></h1>
-        <p class="hero-lead">Escolha uma experiência criada para transformar a maneira como você se vê, cria e se posiciona no mundo.</p>
-      </div>
-      <div class="hero-art">
-        <img class="hero-image" src="img/Logo-FSI.jpeg" alt="Logo Fashion Style Institute">
-      </div>
+      <nav class="nav" aria-label="Navegação principal">
+        <a href="#sobre">Sobre</a>
+        <a href="#processo">Processo</a>
+        <a href="#caminhos">Caminhos</a>
+        <a href="pages/design-de-moda-com-proposito.html">Loja</a>
+      </nav>
+
+      <a class="primary-button small" href="#contato">Falar conosco</a>
     </header>
 
-    <section class="intro-strip" aria-label="Mensagem de boas-vindas">
-      <p><strong>Olá, mulher extraordinária.</strong><br>Seu estilo pode contar uma história nova.</p>
-      <p>Escolha o seu caminho <strong>↓</strong></p>
-    </section>
+    <main class="home">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">mais presença. mais intenção. mais você.</p>
+          <h1>Seu estilo pode</h1>
+          <h1 class="feature-title">contar outra história.</h1>
+          <p class="hero-lead">A Fashion Style Institute ajuda mulheres a se enxergarem com mais clareza, confiança e autenticidade — através de estilo, imagem e escolhas que refletem quem elas realmente são.</p>
 
-    <section aria-labelledby="programas-title">
-      <div class="programs-heading">
-        <h2 id="programas-title">Três caminhos.<br>Uma transformação mais sua.</h2>
-        <p>Caminhos para fortalecer sua imagem, conhecer a loja FSI Studio e encontrar ideias para o seu estilo.</p>
-      </div>
+          <div class="hero-actions">
+            <a class="primary-button" href="pages/estilo-com-seguranca.html">Quero começar</a>
+            <a class="secondary-button" href="pages/design-de-moda-com-proposito.html">Explorar loja</a>
+          </div>
 
-      <nav class="programs" aria-label="Programas de transformação">
-        <a class="program" href="pages/estilo-com-seguranca.html">
-          <div>
-            <div class="program-top"><span class="program-number">01</span><span class="program-icon" aria-hidden="true">✦</span></div>
+          <ul class="hero-badges" aria-label="Diferenciais da marca">
+            <li>Consultoria de imagem</li>
+            <li>Estilo com propósito</li>
+            <li>Loja autoral</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual" aria-label="Imagem editorial da marca">
+          <div class="visual-card">
+            <img src="img/Logo-FSI.jpeg" alt="Logo Fashion Style Institute">
+          </div>
+          <div class="floating-note top">Estilo que se sente como você.</div>
+          <div class="floating-note bottom">Presença com verdade.</div>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Dados e diferenciais da brand">
+        <article>
+          <strong>+3.000</strong>
+          <span>pessoas impactadas em presença e autoestima</span>
+        </article>
+        <article>
+          <strong>4 pilares</strong>
+          <span>imagem, identidade, escolha e confiança</span>
+        </article>
+        <article>
+          <strong>100%</strong>
+          <span>focado em estilo com intenção e autenticidade</span>
+        </article>
+      </section>
+
+      <section class="about" id="sobre">
+        <div class="section-header">
+          <p class="eyebrow dark">quem somos</p>
+          <h2>Uma marca feita para mulheres que querem se sentir bem no mundo.</h2>
+        </div>
+
+        <div class="about-grid">
+          <div class="about-copy">
+            <p>A FSI nasceu para ajudar mulheres a transformar sua forma de se vestir, se posicionar e se enxergar com mais leveza, clareza e presença.</p>
+            <p>Não é sobre seguir regras. É sobre criar um estilo que reflita sua história, seu valor e sua identidade.</p>
+          </div>
+
+          <div class="about-panel">
+            <p class="panel-label">O que você encontra</p>
+            <ul>
+              <li>Estratégia de imagem e estilo pessoal</li>
+              <li>Consultoria para vestir com confiança</li>
+              <li>Loja FSI Studio com peças pensadas para a sua identidade</li>
+              <li>Conteúdo e inspiração para evoluir sua presença</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="process" id="processo">
+        <div class="section-header">
+          <p class="eyebrow dark">como funciona</p>
+          <h2>Uma experiência pensada para te levar da dúvida à confiança.</h2>
+        </div>
+
+        <div class="process-grid">
+          <article class="step-card">
+            <span class="step-number">01</span>
+            <h3>Entender sua imagem</h3>
+            <p>Você começa explorando sua personalidade, seus objetivos e o que precisa sentir em relação ao seu estilo.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">02</span>
+            <h3>Definir sua linguagem</h3>
+            <p>Combinamos referências, contexto e identidade para criar uma direção visual clara e coerente.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">03</span>
+            <h3>Viver com presença</h3>
+            <p>Você aplica o estilo com segurança, em diferentes momentos da sua rotina, com mais clareza e autenticidade.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="pathways" id="caminhos">
+        <div class="section-header">
+          <p class="eyebrow dark">três caminhos</p>
+          <h2>Escolha o caminho que mais combina com você.</h2>
+        </div>
+
+        <div class="programs" aria-label="Programas da Fashion Style Institute">
+          <a class="program-card card-warm" href="pages/estilo-com-seguranca.html">
+            <div class="program-top">
+              <span>01</span>
+              <em>✦</em>
+            </div>
             <h3>Estilo com Segurança</h3>
-            <p>Reconstrua a sua imagem, fortaleça a autoestima e sinta confiança em cada fase da vida.</p>
-          </div>
-          <span class="program-action">Começar a transformação <span class="arrow" aria-hidden="true">↗</span></span>
-        </a>
+            <p>Recrie sua imagem com início de transformação emocional, visual e pessoal.</p>
+            <strong>Começar agora</strong>
+          </a>
 
-        <a class="program" href="pages/design-de-moda-com-proposito.html">
-          <div>
-            <div class="program-top"><span class="program-number">02</span><span class="program-icon" aria-hidden="true">✎</span></div>
+          <a class="program-card card-rose" href="pages/design-de-moda-com-proposito.html">
+            <div class="program-top">
+              <span>02</span>
+              <em>✎</em>
+            </div>
             <h3>Loja FSI Studio</h3>
-            <p>Descubra peças, acessórios e escolhas autorais para vestir a sua identidade.</p>
-          </div>
-          <span class="program-action">Explorar a loja <span class="arrow" aria-hidden="true">↗</span></span>
-        </a>
+            <p>Descubra peças e acessórios escolhidos com propósito para compor seu estilo.</p>
+            <strong>Explorar coleção</strong>
+          </a>
 
-        <a class="program" href="pages/consultoria-de-imagem.html">
-          <div>
-            <div class="program-top"><span class="program-number">03</span><span class="program-icon" aria-hidden="true">◎</span></div>
+          <a class="program-card card-sage" href="pages/consultoria-de-imagem.html">
+            <div class="program-top">
+              <span>03</span>
+              <em>◎</em>
+            </div>
             <h3>Guia de Estilo</h3>
-            <p>Encontre ideias para escolher peças com intenção e explorar as categorias da FSI Studio.</p>
-          </div>
-          <span class="program-action">Encontrar meu estilo <span class="arrow" aria-hidden="true">↗</span></span>
-        </a>
-      </nav>
-    </section>
+            <p>Encontre referências, ideias e decisões mais certeiras para se vestir com intenção.</p>
+            <strong>Ver orientações</strong>
+          </a>
+        </div>
+      </section>
 
-    <footer class="footer" aria-label="Informações e contato">
+      <section class="highlights">
+        <div class="section-header narrow">
+          <p class="eyebrow dark">porque a FSI funciona</p>
+          <h2>Estilo que se sente natural, sofisticado e verdadeiro.</h2>
+        </div>
+
+        <div class="highlight-grid">
+          <article>
+            <h3>Clareza visual</h3>
+            <p>Você entende melhor o que combina com sua identidade, corpo e rotina.</p>
+          </article>
+          <article>
+            <h3>Confiança real</h3>
+            <p>O que você veste passa a refletir segurança e presença, sem esforço artificial.</p>
+          </article>
+          <article>
+            <h3>Escolhas intencionais</h3>
+            <p>Você compra e usa mais consciente, com menos excesso e mais autenticidade.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="testimonials">
+        <div class="section-header">
+          <p class="eyebrow dark">depoimentos</p>
+          <h2>Mulheres que encontraram uma forma nova de se enxergar.</h2>
+        </div>
+
+        <div class="testimonial-grid">
+          <article class="quote-card">
+            <p>“Senti que meu guarda-roupa passou a refletir quem eu sou. Hoje me visto com mais segurança e leveza.”</p>
+            <strong>— Ana L.</strong>
+          </article>
+          <article class="quote-card">
+            <p>“A proposta da FSI é muito clara e diferente: é estilo sem pressão, mas com direção e intenção.”</p>
+            <strong>— Beatriz M.</strong>
+          </article>
+          <article class="quote-card">
+            <p>“Eu deixei de seguir tendências e passei a escolher peças que me representam de verdade.”</p>
+            <strong>— Carla P.</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta-band" id="contato">
+        <div>
+          <p class="eyebrow dark">próxima etapa</p>
+          <h2>Transforme sua imagem com uma direção que faz sentido para você.</h2>
+        </div>
+        <div class="cta-actions">
+          <a class="primary-button" href="mailto:FashionStyle@gmail.com">Falar por e-mail</a>
+          <a class="secondary-button" href="tel:+5541987263109">Falar por WhatsApp</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" aria-label="Informações de contato e navegação">
       <div class="footer-brand">
-        <a class="brand" href="index.html">
-          <span class="brand-mark" aria-hidden="true">F</span>
-          <span>Fashion Style Institute</span>
+        <a class="brand" href="index.html" aria-label="Fashion Style Institute home">
+          <img src="img/fsi-monograma.svg" alt="Monograma FSI" class="brand-mark">
+          <span class="brand-text">
+            <strong>Fashion Style</strong>
+            <small>Institute</small>
+          </span>
         </a>
         <p>Estilo não é regra. É linguagem.</p>
       </div>
 
-      <nav class="footer-links" aria-label="Explore o site">
-        <h2>Explore</h2>
+      <nav class="footer-links" aria-label="Navegação do rodapé">
+        <h3>Explore</h3>
         <a href="pages/design-de-moda-com-proposito.html">Loja FSI Studio</a>
         <a href="pages/estilo-com-seguranca.html">Estilo com Segurança</a>
         <a href="pages/consultoria-de-imagem.html">Guia de Estilo</a>
       </nav>
 
-      <section class="footer-contact" aria-labelledby="footer-contact-title">
-        <h2 id="footer-contact-title">Fale com a gente</h2>
-        <a href="mailto:FashionStyle@gmail.com"><span>E-mail</span><strong>FashionStyle@gmail.com</strong></a>
-        <a href="tel:+5541987263109"><span>Telefone</span><strong>41 98726-3109</strong></a>
-        <a href="https://www.instagram.com/FashionStyleInst/" target="_blank" rel="noopener noreferrer"><span>Instagram</span><strong>@FashionStyleInst</strong></a>
-      </section>
+      <div class="footer-contact">
+        <h3>Contato</h3>
+        <a href="mailto:FashionStyle@gmail.com">FashionStyle@gmail.com</a>
+        <a href="tel:+5541987263109">41 98726-3109</a>
+        <a href="https://www.instagram.com/FashionStyleInst/" target="_blank" rel="noopener noreferrer">@FashionStyleInst</a>
+      </div>
 
       <div class="footer-bottom">
         <p>© 2026 Fashion Style Institute</p>
-        <p>Moda com propósito, presença com verdade.</p>
       </div>
     </footer>
-  </main>
+  </div>
 </body>
 </html>

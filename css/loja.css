@@ -48,8 +48,21 @@ a { color: inherit; }
 .store-brand small { display: block; margin-top: 2px; color: var(--muted); font-size: .48em; letter-spacing: .28em; }
 .store-mark { display: grid; width: 37px; height: 37px; place-items: center; color: var(--cream); background: var(--wine); border-radius: 50% 50% 50% 10px; font-family: "Playfair Display", serif; font-size: 1.2rem; letter-spacing: 0; }
 .store-nav { display: flex; gap: clamp(18px, 3vw, 42px); }
-.store-nav a, .text-link { font-size: .76rem; font-weight: 700; letter-spacing: .1em; text-decoration: none; text-transform: uppercase; }
-.store-nav a:hover, .text-link:hover { color: var(--wine); }
+.store-nav a, .text-link { position: relative; font-size: .76rem; font-weight: 700; letter-spacing: .1em; text-decoration: none; text-transform: uppercase; }
+.store-nav a::after, .text-link::after, .store-brand::after {
+  position: absolute;
+  right: 0;
+  bottom: -5px;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 180ms ease;
+  content: "";
+}
+.store-nav a:hover, .text-link:hover, .store-brand:hover { color: var(--wine); }
+.store-nav a:hover::after, .text-link:hover::after, .store-brand:hover::after { transform: scaleX(1); }
 .store-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .icon-button { padding: 7px 9px; color: var(--ink); background: transparent; border: 0; cursor: pointer; font-size: 1.2rem; }
 .tracking-nav-button { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; color: var(--wine); border: 1px solid var(--line); font-size: .67rem; font-weight: 700; letter-spacing: .04em; text-decoration: none; text-transform: uppercase; white-space: nowrap; }
