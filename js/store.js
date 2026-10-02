@@ -43,8 +43,60 @@
   }
 
   function initializeStoreSearch() {
-    const search = document.querySelector('[data-store-search]');
-    const toggle = document.querySelector('[data-search-toggle]');
+    const header = document.querySelector('.store-header');
+    const actions = header?.querySelector('.store-actions');
+    if (!header || !actions) return;
+
+    let search = header.querySelector('[data-store-search]');
+    let toggle = header.querySelector('[data-search-toggle]');
+    if (!toggle) {
+      toggle = document.createElement('button');
+      toggle.className = 'icon-button';
+      toggle.type = 'button';
+      toggle.dataset.searchToggle = '';
+      toggle.setAttribute('aria-label', 'Buscar produtos');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-controls', 'store-search-panel');
+      toggle.textContent = '⌕';
+      actions.insertBefore(toggle, actions.firstChild);
+    }
+    if (!search) {
+      search = document.createElement('div');
+      search.className = 'store-search';
+      search.id = 'store-search-panel';
+      search.dataset.storeSearch = '';
+      search.setAttribute('role', 'search');
+      search.hidden = true;
+      const inputRow = document.createElement('div');
+      inputRow.className = 'store-search-input-row';
+      const label = document.createElement('label');
+      label.className = 'sr-only';
+      label.htmlFor = 'store-search-input';
+      label.textContent = 'Buscar produtos';
+      const input = document.createElement('input');
+      input.id = 'store-search-input';
+      input.type = 'search';
+      input.autocomplete = 'off';
+      input.placeholder = 'Nome, cor, tamanho, preço...';
+      input.dataset.searchInput = '';
+      const closeButton = document.createElement('button');
+      closeButton.className = 'store-search-close';
+      closeButton.type = 'button';
+      closeButton.dataset.searchClose = '';
+      closeButton.setAttribute('aria-label', 'Fechar busca');
+      closeButton.textContent = '×';
+      inputRow.append(label, input, closeButton);
+      const results = document.createElement('div');
+      results.className = 'store-search-results';
+      results.dataset.searchResults = '';
+      results.setAttribute('aria-live', 'polite');
+      const hint = document.createElement('p');
+      hint.className = 'store-search-hint';
+      hint.textContent = 'Digite para buscar nos produtos.';
+      results.append(hint);
+      search.append(inputRow, results);
+      header.append(search);
+    }
     const input = search?.querySelector('[data-search-input]');
     const results = search?.querySelector('[data-search-results]');
     if (!search || !toggle || !input || !results) return;
@@ -136,6 +188,46 @@
       }
     });
     search.querySelector('[data-search-close]').addEventListener('click', closeSearch);
+  }
+
+  function createCatalogCard(item, headingTag = 'h2') {
+    const card = document.createElement('a');
+    card.className = 'product-card product-card-link';
+    card.href = `produto-camisa-essencia.html?produto=${encodeURIComponent(item.id)}`;
+    const visual = document.createElement('div');
+    visual.className = 'product-image product-image-photo';
+    const color = Object.keys(item.images).find((name) => !item.unavailableColors.includes(name));
+    const image = document.createElement('img');
+    image.src = imagePath(item, color);
+    image.alt = `${item.name}, ${color}`;
+    image.loading = 'lazy';
+    visual.append(image);
+    const type = document.createElement('p');
+    type.className = 'product-type';
+    type.textContent = `Vestir · ${Object.keys(item.images).length} cores`;
+    const name = document.createElement(headingTag);
+    name.textContent = item.name;
+    const note = document.createElement('p');
+    note.className = 'product-note';
+    note.textContent = item.note;
+    const price = document.createElement('strong');
+    price.className = 'product-price';
+    price.textContent = formatMoney(item.price);
+    card.append(visual, type, name, note, price);
+    return card;
+  }
+
+  function initializeRecommendations() {
+    const section = document.querySelector('[data-product-recommendations]');
+    const list = section?.querySelector('[data-recommendation-list]');
+    if (!section || !list) return;
+    const recommendations = products.filter((item) => item.id !== product.id);
+    for (let index = recommendations.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [recommendations[index], recommendations[randomIndex]] = [recommendations[randomIndex], recommendations[index]];
+    }
+    list.replaceChildren(...recommendations.slice(0, 3).map((item) => createCatalogCard(item, 'h3')));
+    section.hidden = recommendations.length === 0;
   }
 
   function readCart() {
@@ -662,32 +754,6 @@
       .some((color) => !item.unavailableColors.includes(color) && productSizes(item, color).includes(size))));
     sizes.forEach((size) => createFilter(sizeFilters, 'filter-size', size));
 
-    const createCard = (item) => {
-      const card = document.createElement('a');
-      card.className = 'product-card product-card-link';
-      card.href = `produto-camisa-essencia.html?produto=${encodeURIComponent(item.id)}`;
-      const visual = document.createElement('div');
-      visual.className = 'product-image product-image-photo';
-      const image = document.createElement('img');
-      image.src = imagePath(item, Object.keys(item.images)[0]);
-      image.alt = `${item.name}, ${Object.keys(item.images)[0]}`;
-      image.loading = 'lazy';
-      visual.append(image);
-      const type = document.createElement('p');
-      type.className = 'product-type';
-      type.textContent = `Vestir · ${Object.keys(item.images).length} ${Object.keys(item.images).length === 1 ? 'cor' : 'cores'}`;
-      const name = document.createElement('h2');
-      name.textContent = item.name;
-      const note = document.createElement('p');
-      note.className = 'product-note';
-      note.textContent = item.note;
-      const price = document.createElement('strong');
-      price.className = 'product-price';
-      price.textContent = formatMoney(item.price);
-      card.append(visual, type, name, note, price);
-      return card;
-    };
-
     const renderFilteredProducts = () => {
       const selectedColors = [...filterPanel.querySelectorAll('[name="filter-color"]:checked')].map((input) => input.value);
       const selectedSizes = [...filterPanel.querySelectorAll('[name="filter-size"]:checked')].map((input) => input.value);
@@ -703,7 +769,7 @@
       const count = document.querySelector('[data-product-count]');
       if (count) count.textContent = `${matches.length} ${matches.length === 1 ? 'produto' : 'produtos'}`;
       if (matches.length) {
-        list.replaceChildren(...matches.map(createCard));
+        list.replaceChildren(...matches.map((item) => createCatalogCard(item)));
       } else {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'product-list-empty';
@@ -1056,6 +1122,7 @@
   initializeProductListing();
   initializeStoreSearch();
   initializeProductDetail();
+  initializeRecommendations();
   initializeAddressSuggestions();
   updateBagCount();
   renderCart();
