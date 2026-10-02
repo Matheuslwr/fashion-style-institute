@@ -682,7 +682,9 @@ img { display: block; max-width: 100%; }
   .topbar { padding: 16px; }
   .nav { justify-content: center; flex-wrap: wrap; }
   .hero { padding-top: 20px; }
-  .floating-note { position: static; display: inline-flex; margin-top: 12px; }
+  .floating-note { padding: 9px 12px; font-size: .58rem; }
+  .floating-note.top { top: 8%; right: 4%; }
+  .floating-note.bottom { bottom: 7%; left: 4%; }
   .visual-card img { height: 420px; }
   .primary-button,
   .secondary-button { width: 100%; }

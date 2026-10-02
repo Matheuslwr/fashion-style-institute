@@ -21,9 +21,13 @@
         <a href="#manifesto">Manifesto</a>
       </nav>
       <div class="store-actions">
-        <button class="icon-button" type="button" aria-label="Buscar">⌕</button>
+        <button class="icon-button" type="button" data-search-toggle aria-label="Buscar produtos" aria-expanded="false" aria-controls="store-search-panel">⌕</button>
         <a class="tracking-nav-button" href="acompanhar-pedido.html" title="Acompanhar pedido" aria-label="Acompanhar pedido"><span aria-hidden="true">◎</span><span>Acompanhar</span></a>
-        <a class="icon-button" href="sacola.html" aria-label="Sacola">♡ <span class="bag-count">0</span></a>
+        <a class="icon-button" href="carrinho.html" aria-label="Carrinho">🛒 <span class="bag-count">0</span></a>
+      </div>
+      <div class="store-search" id="store-search-panel" data-store-search role="search" hidden>
+        <div class="store-search-input-row"><label class="sr-only" for="store-search-input">Buscar produtos</label><input id="store-search-input" type="search" autocomplete="off" placeholder="Nome, cor, tamanho, preço..." data-search-input><button class="store-search-close" type="button" data-search-close aria-label="Fechar busca">×</button></div>
+        <div class="store-search-results" data-search-results aria-live="polite"><p class="store-search-hint">Digite para buscar nos produtos.</p></div>
       </div>
     </header>
 
@@ -72,7 +76,8 @@
 
     <section class="newsletter">
       <p class="kicker">Para receber novidades</p><h2>Entre na nossa lista.</h2><p>Novas edições, referências e histórias direto no seu e-mail.</p>
-      <form class="newsletter-form"><label class="sr-only" for="email">Seu e-mail</label><input id="email" type="email" placeholder="seu melhor e-mail" required><button type="submit">Cadastrar ↗</button></form>
+      <form class="newsletter-form" data-newsletter-form><label class="sr-only" for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seu melhor e-mail" required><button type="submit">Solicitar inscrição ↗</button></form>
+      <p class="newsletter-feedback" data-newsletter-feedback role="status" aria-live="polite">Seu aplicativo de e-mail será aberto para concluir a inscrição.</p>
     </section>
 
     <footer class="store-footer"><a class="store-brand" href="../index.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a><p>Moda com propósito, presença com verdade.</p><p>© 2026 FSI Studio</p></footer>
