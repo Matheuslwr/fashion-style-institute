@@ -1,17 +1,11 @@
 (() => {
-  const products = [
-    { id: 'vestido-liliany', name: 'Vestido LILIANY', price: 22990, note: 'Tule · modelagem elegante', missingSizesByColor: { 'Azul-marinho': ['39'], 'Azul serenity': ['41'], Laranja: ['40', '41'], Rosé: [], Roxo: ['39', '42'], Verde: ['42'], Vermelho: ['40'] }, unavailableColors: ['Rosé'], images: { 'Azul-marinho': 'Vestido1-Azul-Marinho.webp', 'Azul serenity': 'Vestido1-Azul-Serenity.webp', Laranja: 'Vestido1-Laranja.webp', Rosé: 'Vestido1-Rosé.webp', Roxo: 'Vestido1-Roxo.webp', Verde: 'Vestido1-Verde.webp', Vermelho: 'Vestido1-Vermelho.webp' } },
-    { id: 'vestido-amelia', name: 'Vestido AMÉLIA', price: 24990, note: 'Caimento fluido · cores intensas', missingSizesByColor: { 'Azul-marinho': ['41'], Marsala: [], 'Verde oliva': ['39', '42'] }, unavailableColors: ['Marsala'], images: { 'Azul-marinho': 'VestidoAmeliaAzulMarinho.webp', Marsala: 'VestidoAmeliaMarsala.webp', 'Verde oliva': 'VestidoAmeliaVerdeOliva.png' } },
-    { id: 'vestido-laura', name: 'Vestido LAURA', price: 21990, note: 'Silhueta marcante · toque leve', missingSizesByColor: { 'Azul serenity': ['40'], Fúcsia: ['39', '41'], Marsala: ['42'], 'Verde oliva': ['38'] }, unavailableColors: [], images: { 'Azul serenity': 'VestidoLauraAzulSerenity.webp', Fúcsia: 'VestidoLauraFúcsia.webp', Marsala: 'VestidoLauraMarsala.webp', 'Verde oliva': 'VestidoLauraVerdeOliva.webp' } },
-    { id: 'vestido-lira', name: 'Vestido LIRA', price: 23990, note: 'Design contemporâneo · várias cores', missingSizesByColor: { 'Azul bic': ['39', '42'], Fúcsia: ['41'], Marrom: ['40'], Uva: [], Vinho: ['39', '41'] }, unavailableColors: ['Uva'], images: { 'Azul bic': 'VestidoLiraAzulBic.webp', Fúcsia: 'VestidoLiraFúcsia.webp', Marrom: 'VestidoLiraMarrom.webp', Uva: 'VestidoLiraUva.webp', Vinho: 'VestidoLiraVinho.webp' } },
-    { id: 'vestido-nanda', name: 'Vestido NANDA', price: 19990, note: 'Conforto e cor para o dia a dia', missingSizesByColor: { 'Azul-marinho': ['40', '42'], 'Azul serenity': ['38', '41'] }, unavailableColors: [], images: { 'Azul-marinho': 'VestidoNandaAzulMarinho.webp', 'Azul serenity': 'VestidoNandaAzulSerenity.webp' } },
-    { id: 'vestido-zaza', name: 'Vestido ZAZA', price: 18990, note: 'Leveza · paleta vibrante', missingSizesByColor: { Amarelo: ['39', '41'], Fúcsia: ['40'], 'Verde menta': ['38', '42'], 'Verde oliva': ['39', '40'] }, unavailableColors: [], images: { Amarelo: 'VestidoZazaAmarelo.webp', Fúcsia: 'VestidoZazaFúcsia.webp', 'Verde menta': 'VestidoZazaVerdeMenta.webp', 'Verde oliva': 'VestidoZazaVerdeOliva.webp' } }
-  ];
-  const productsById = new Map(products.map((item) => [item.id, item]));
-  const product = productsById.get(new URLSearchParams(window.location.search).get('produto')) || products[0];
+  let products = [];
+  let productsById = new Map();
+  let categories = [];
+  let product = null;
+  const apiBase = (window.FSI_API_BASE_URL || '').replace(/\/$/, '');
   const cartKey = 'fsi-demo-cart-v1';
   const orderKey = 'fsi-demo-order-v1';
-  const availableSizes = ['38', '39', '40', '41', '42'];
   const shippingOrigin = { latitude: -25.4284, longitude: -49.2733 };
   const brazilStates = [
     ['AC', 'Acre'], ['AL', 'Alagoas'], ['AP', 'Amapá'], ['AM', 'Amazonas'], ['BA', 'Bahia'],
@@ -35,11 +29,61 @@
   }).format(cents / 100);
 
   function productSizes(item, color) {
-    return availableSizes.filter((size) => !item.missingSizesByColor[color].includes(size));
+    return [...new Set(item.variants.filter((variant) => variant.color === color).map((variant) => variant.size))]
+      .sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
+  }
+
+  function hasStock(item, color, size) {
+    return item.variants.some((variant) => variant.color === color && variant.size === String(size) && variant.stock > 0);
   }
 
   function imagePath(item, color) {
-    return `../img/Produtos/${item.images[color]}`;
+    const image = item.images[color] || item.images.default || Object.values(item.images)[0];
+    if (!image) return '';
+    if (/^https?:\/\//i.test(image)) return image;
+    if (image.startsWith('/uploads/')) return `${apiBase}${image}`;
+    const script = document.querySelector('script[src*="store.js"]');
+    return new URL(image.replace(/^\//, ''), new URL('../', script.src)).href;
+  }
+
+  function normalizeProduct(item) {
+    const images = {};
+    item.images.forEach((image) => {
+      if (image.color && !images[image.color]) images[image.color] = image.imageUrl;
+    });
+    const defaultImage = item.images[0]?.imageUrl;
+    if (defaultImage) images.default = defaultImage;
+    const colors = [...new Set(item.variants.map((variant) => variant.color))];
+    colors.forEach((color) => { if (!images[color] && defaultImage) images[color] = defaultImage; });
+    return {
+      ...item,
+      id: item.slug,
+      note: item.description,
+      price: item.promotionalPriceCents ?? item.priceCents,
+      originalPrice: item.priceCents,
+      images,
+      imagesList: item.images,
+      variants: item.variants,
+      colors
+    };
+  }
+
+  async function fetchCatalog() {
+    let productsResponse;
+    let categoriesResponse;
+    try {
+      [productsResponse, categoriesResponse] = await Promise.all([
+        fetch(`${apiBase}/api/products`),
+        fetch(`${apiBase}/api/categories`)
+      ]);
+    } catch {
+      throw new Error('Não foi possível conectar ao catálogo. Confira se a API está em execução.');
+    }
+    if (!productsResponse.ok || !categoriesResponse.ok) throw new Error('Não foi possível carregar o catálogo. Tente novamente em instantes.');
+    products = (await productsResponse.json()).map(normalizeProduct);
+    categories = await categoriesResponse.json();
+    productsById = new Map(products.map((item) => [item.id, item]));
+    product = productsById.get(new URLSearchParams(window.location.search).get('produto')) || null;
   }
 
   function initializeStoreSearch() {
@@ -102,7 +146,7 @@
     if (!search || !toggle || !input || !results) return;
 
     const searchText = (item) => {
-      const colors = Object.keys(item.images);
+      const colors = item.colors;
       const sizes = colors.flatMap((color) => productSizes(item, color));
       const price = (item.price / 100).toFixed(2);
       return normalizeLocation([
@@ -144,7 +188,7 @@
         result.className = 'store-search-result';
         result.href = `produto-camisa-essencia.html?produto=${encodeURIComponent(item.id)}`;
         const image = document.createElement('img');
-        const firstAvailableColor = Object.keys(item.images).find((color) => !item.unavailableColors.includes(color));
+        const firstAvailableColor = item.colors.find((color) => item.variants.some((variant) => variant.color === color && variant.stock > 0)) || item.colors[0];
         image.src = imagePath(item, firstAvailableColor);
         image.alt = '';
         const copy = document.createElement('span');
@@ -152,7 +196,7 @@
         const name = document.createElement('strong');
         name.textContent = item.name;
         const note = document.createElement('small');
-        note.textContent = `${item.note} · ${Object.keys(item.images).length} cores`;
+        note.textContent = `${item.note} · ${item.colors.length} cores`;
         copy.append(name, note);
         const price = document.createElement('span');
         price.className = 'store-search-result-price';
@@ -196,7 +240,7 @@
     card.href = `produto-camisa-essencia.html?produto=${encodeURIComponent(item.id)}`;
     const visual = document.createElement('div');
     visual.className = 'product-image product-image-photo';
-    const color = Object.keys(item.images).find((name) => !item.unavailableColors.includes(name));
+    const color = item.colors.find((name) => item.variants.some((variant) => variant.color === name && variant.stock > 0)) || item.colors[0];
     const image = document.createElement('img');
     image.src = imagePath(item, color);
     image.alt = `${item.name}, ${color}`;
@@ -204,7 +248,7 @@
     visual.append(image);
     const type = document.createElement('p');
     type.className = 'product-type';
-    type.textContent = `Vestir · ${Object.keys(item.images).length} cores`;
+    type.textContent = `${item.category.name} · ${item.colors.length} cores`;
     const name = document.createElement(headingTag);
     name.textContent = item.name;
     const note = document.createElement('p');
@@ -213,7 +257,14 @@
     const price = document.createElement('strong');
     price.className = 'product-price';
     price.textContent = formatMoney(item.price);
-    card.append(visual, type, name, note, price);
+    if (item.promotionalPriceCents != null) {
+      const originalPrice = document.createElement('del');
+      originalPrice.className = 'product-original-price';
+      originalPrice.textContent = formatMoney(item.originalPrice);
+      card.append(visual, type, name, note, originalPrice, price);
+    } else {
+      card.append(visual, type, name, note, price);
+    }
     return card;
   }
 
@@ -230,6 +281,67 @@
     section.hidden = recommendations.length === 0;
   }
 
+  function initializeFeaturedProducts() {
+    const list = document.querySelector('[data-featured-products]');
+    if (!list) return;
+    const featured = products.filter((item) => item.featured).slice(0, 4);
+    list.replaceChildren(...featured.map((item) => createCatalogCard(item, 'h3')));
+    list.hidden = featured.length === 0;
+  }
+
+  function initializeStyleGuideProduct() {
+    const image = document.querySelector('[data-style-guide-product-image]');
+    const caption = document.querySelector('[data-style-guide-product-caption]');
+    if (!image || !products.length) return;
+    const featuredProduct = products.find((item) => item.featured) || products[0];
+    const color = featuredProduct.colors.find((name) => featuredProduct.variants
+      .some((variant) => variant.color === name && variant.stock > 0)) || featuredProduct.colors[0];
+    image.src = imagePath(featuredProduct, color);
+    image.alt = featuredProduct.imagesList[0]?.altText || `${featuredProduct.name}, referência de estilo`;
+    if (caption) caption.textContent = `${featuredProduct.name} · ${featuredProduct.category.name}`;
+  }
+
+  function initializeCategoryLinks() {
+    const list = document.querySelector('[data-category-list]');
+    if (!list) return;
+    list.replaceChildren(...categories.map((category, index) => {
+      const link = document.createElement('a');
+      const knownPages = {
+        vestir: 'vestir.html',
+        acessorios: 'acessorios.html',
+        'calcados-e-variedades': 'calcados-e-variedades.html'
+      };
+      link.href = knownPages[category.slug] || `categoria.html?categoria=${encodeURIComponent(category.slug)}`;
+      const number = document.createElement('span');
+      number.textContent = String(index + 1).padStart(2, '0');
+      const name = document.createElement('strong');
+      name.textContent = category.name;
+      const description = document.createElement('small');
+      description.textContent = 'Peças para descobrir por categoria';
+      const arrow = document.createElement('b');
+      arrow.textContent = '↗';
+      link.append(number, name, description, arrow);
+      return link;
+    }));
+  }
+
+  function initializeGenericCategory() {
+    const heading = document.querySelector('[data-generic-category]');
+    if (!heading) return;
+    const slug = new URLSearchParams(window.location.search).get('categoria');
+    const list = document.querySelector('[data-product-list]');
+    if (list && slug) list.dataset.category = slug;
+    const category = categories.find((item) => item.slug === slug);
+    if (!category) {
+      heading.querySelector('h1').textContent = 'Categoria não encontrada';
+      return;
+    }
+    heading.querySelector('h1').textContent = category.name;
+    heading.querySelector('[data-category-slug]').textContent = category.name;
+    document.title = `${category.name} | FSI Studio`;
+    if (list) list.dataset.category = category.slug;
+  }
+
   function readCart() {
     try {
       const savedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
@@ -238,8 +350,7 @@
         const cartProduct = productsById.get(item.productId);
         return cartProduct
           && Object.hasOwn(cartProduct.images, item.color)
-          && !cartProduct.unavailableColors.includes(item.color)
-          && productSizes(cartProduct, item.color).includes(String(item.size))
+          && hasStock(cartProduct, item.color, item.size)
           && Number.isInteger(item.quantity)
           && item.quantity > 0;
       }).map((item) => ({
@@ -736,8 +847,10 @@
     const list = document.querySelector('[data-product-list]');
     if (!list) return;
     const filterPanel = document.querySelector('[data-filter-panel]');
-    const colorFilters = filterPanel.querySelector('[data-color-filters]');
-    const sizeFilters = filterPanel.querySelector('[data-size-filters]');
+    const colorFilters = filterPanel?.querySelector('[data-color-filters]');
+    const sizeFilters = filterPanel?.querySelector('[data-size-filters]');
+    const categorySlug = list.dataset.category;
+    const categoryProducts = products.filter((item) => !categorySlug || item.category.slug === categorySlug);
     const createFilter = (container, name, value) => {
       const label = document.createElement('label');
       const input = document.createElement('input');
@@ -747,24 +860,24 @@
       label.append(input, document.createTextNode(` ${value}`));
       container.append(label);
     };
-    const colors = [...new Set(products.flatMap((item) => Object.keys(item.images)
-      .filter((color) => !item.unavailableColors.includes(color))))];
-    colors.forEach((color) => createFilter(colorFilters, 'filter-color', color));
-    const sizes = availableSizes.filter((size) => products.some((item) => Object.keys(item.images)
-      .some((color) => !item.unavailableColors.includes(color) && productSizes(item, color).includes(size))));
-    sizes.forEach((size) => createFilter(sizeFilters, 'filter-size', size));
+    const colors = [...new Set(categoryProducts.flatMap((item) => item.colors))];
+    colors.forEach((color) => colorFilters && createFilter(colorFilters, 'filter-color', color));
+    const sizes = [...new Set(categoryProducts.flatMap((item) => item.variants
+      .filter((variant) => variant.stock > 0).map((variant) => variant.size)))];
+    sizes.sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
+    sizes.forEach((size) => sizeFilters && createFilter(sizeFilters, 'filter-size', size));
 
     const renderFilteredProducts = () => {
-      const selectedColors = [...filterPanel.querySelectorAll('[name="filter-color"]:checked')].map((input) => input.value);
-      const selectedSizes = [...filterPanel.querySelectorAll('[name="filter-size"]:checked')].map((input) => input.value);
-      const minimum = Number(filterPanel.querySelector('#price-min').value) || 0;
-      const maximumValue = filterPanel.querySelector('#price-max').value;
+      const selectedColors = [...(filterPanel?.querySelectorAll('[name="filter-color"]:checked') || [])].map((input) => input.value);
+      const selectedSizes = [...(filterPanel?.querySelectorAll('[name="filter-size"]:checked') || [])].map((input) => input.value);
+      const minimum = Number(filterPanel?.querySelector('#price-min')?.value) || 0;
+      const maximumValue = filterPanel?.querySelector('#price-max')?.value || '';
       const maximum = maximumValue === '' ? Infinity : Number(maximumValue);
-      const matches = products.filter((item) => {
+      const matches = categoryProducts.filter((item) => {
         if (item.price < minimum * 100 || item.price > maximum * 100) return false;
-        return Object.keys(item.images).some((color) => !item.unavailableColors.includes(color)
+        return item.colors.some((color) => item.variants.some((variant) => variant.color === color && variant.stock > 0)
           && (!selectedColors.length || selectedColors.includes(color))
-          && (!selectedSizes.length || selectedSizes.some((size) => productSizes(item, color).includes(size))));
+          && (!selectedSizes.length || selectedSizes.some((size) => hasStock(item, color, size))));
       });
       const count = document.querySelector('[data-product-count]');
       if (count) count.textContent = `${matches.length} ${matches.length === 1 ? 'produto' : 'produtos'}`;
@@ -773,16 +886,16 @@
       } else {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'product-list-empty';
-        emptyMessage.textContent = 'Nenhum vestido encontrado com esses filtros.';
+        emptyMessage.textContent = 'Nenhum produto encontrado com esses filtros.';
         list.replaceChildren(emptyMessage);
       }
     };
 
-    filterPanel.addEventListener('change', renderFilteredProducts);
-    filterPanel.addEventListener('input', (event) => {
+    filterPanel?.addEventListener('change', renderFilteredProducts);
+    filterPanel?.addEventListener('input', (event) => {
       if (event.target.matches('#price-min, #price-max')) renderFilteredProducts();
     });
-    filterPanel.querySelector('[data-clear-filters]').addEventListener('click', () => {
+    filterPanel?.querySelector('[data-clear-filters]')?.addEventListener('click', () => {
       filterPanel.querySelectorAll('input[type="checkbox"]').forEach((input) => { input.checked = false; });
       filterPanel.querySelectorAll('input[type="number"]').forEach((input) => { input.value = ''; });
       renderFilteredProducts();
@@ -804,17 +917,22 @@
     const sizeList = document.querySelector('.size-options');
     if (!sizeList) return;
     const sizes = productSizes(product, color);
-    const selectedSize = sizes.includes(preferredSize) ? preferredSize : sizes[0];
+    const selectedSize = sizes.includes(preferredSize) && hasStock(product, color, preferredSize)
+      ? preferredSize : sizes.find((size) => hasStock(product, color, size)) || sizes[0];
     sizeList.replaceChildren(...sizes.map((size) => {
       const button = document.createElement('button');
-      button.className = `size-option${size === selectedSize ? ' is-selected' : ''}`;
+      const available = hasStock(product, color, size);
+      button.className = `size-option${size === selectedSize ? ' is-selected' : ''}${available ? '' : ' is-unavailable'}`;
       button.type = 'button';
       button.dataset.size = size;
       button.textContent = size;
+      button.disabled = !available;
       return button;
     }));
     const selectedLabel = document.querySelector('#selected-size');
-    if (selectedLabel) selectedLabel.textContent = selectedSize;
+    if (selectedLabel) selectedLabel.textContent = selectedSize || 'Indisponível';
+    const addButton = document.querySelector('[data-product-add]');
+    if (addButton) addButton.disabled = !selectedSize;
   }
 
   function selectProductColor(color) {
@@ -834,51 +952,59 @@
 
   function initializeProductDetail() {
     if (!document.querySelector('.product-detail')) return;
-    const colors = Object.keys(product.images);
-    const firstAvailableColor = colors.find((color) => !product.unavailableColors.includes(color));
+    const colors = product.colors;
+    const firstAvailableColor = colors.find((color) => product.variants.some((variant) => variant.color === color && variant.stock > 0)) || colors[0];
     const thumbnailList = document.querySelector('.product-thumbnails');
     const colorList = document.querySelector('.color-options');
     const mainImage = document.querySelector('#main-product-image');
     const title = document.querySelector('.product-info h1');
     if (title) title.textContent = product.name;
     document.title = `${product.name} | FSI Studio`;
-    const breadcrumb = document.querySelector('.product-breadcrumb');
-    if (breadcrumb?.lastChild) breadcrumb.lastChild.textContent = ` / ${product.name}`;
+    const productName = document.querySelector('[data-product-name]');
+    if (productName) productName.textContent = product.name;
+    const categoryLink = document.querySelector('[data-product-category-link]');
+    if (categoryLink) {
+      categoryLink.textContent = product.category.name;
+      categoryLink.href = product.category.slug === 'vestir'
+        ? 'vestir.html'
+        : product.category.slug === 'acessorios'
+          ? 'acessorios.html'
+          : product.category.slug === 'calcados-e-variedades'
+            ? 'calcados-e-variedades.html'
+            : `categoria.html?categoria=${encodeURIComponent(product.category.slug)}`;
+    }
+    const categoryLabel = document.querySelector('[data-product-category]');
+    if (categoryLabel) categoryLabel.textContent = product.category.name;
+    const detailImages = product.imagesList;
     if (mainImage) {
       mainImage.src = imagePath(product, firstAvailableColor);
-      mainImage.alt = `${product.name}, cor ${firstAvailableColor}`;
+      mainImage.alt = detailImages[0]?.altText || `${product.name}, cor ${firstAvailableColor}`;
     }
-    if (thumbnailList) thumbnailList.replaceChildren(...colors.map((color) => {
-      const unavailable = product.unavailableColors.includes(color);
+    if (thumbnailList) thumbnailList.replaceChildren(...detailImages.map((imageRecord) => {
+      const color = imageRecord.color || firstAvailableColor;
       const button = document.createElement('button');
-      button.className = `product-thumb${unavailable ? ' is-unavailable' : ''}`;
+      button.className = 'product-thumb';
       button.type = 'button';
       button.dataset.productColor = color;
-      button.setAttribute('aria-label', `${unavailable ? 'Indisponível: ' : 'Ver '}${product.name}, ${color}`);
-      button.disabled = unavailable;
-      const image = document.createElement('img');
-      image.src = imagePath(product, color);
-      image.alt = '';
-      button.append(image);
-      if (unavailable) {
-        const label = document.createElement('span');
-        label.textContent = 'Indisponível';
-        button.append(label);
-      }
+      button.setAttribute('aria-label', `Ver ${imageRecord.altText || `${product.name}, ${color}`}`);
+      const thumbnailImage = document.createElement('img');
+      thumbnailImage.src = imagePath(product, color);
+      thumbnailImage.alt = '';
+      button.append(thumbnailImage);
       return button;
     }));
     if (colorList) colorList.replaceChildren(...colors.map((color) => {
-      const unavailable = product.unavailableColors.includes(color);
+      const unavailable = !product.variants.some((variant) => variant.color === color && variant.stock > 0);
       const button = document.createElement('button');
       button.className = `color-option${unavailable ? ' is-unavailable' : ''}`;
       button.type = 'button';
       button.dataset.productColor = color;
       button.setAttribute('aria-label', `${unavailable ? 'Indisponível: ' : 'Selecionar '}${color}`);
       button.disabled = unavailable;
-      const image = document.createElement('img');
-      image.src = imagePath(product, color);
-      image.alt = '';
-      button.append(image);
+      const colorImage = document.createElement('img');
+      colorImage.src = imagePath(product, color);
+      colorImage.alt = '';
+      button.append(colorImage);
       if (unavailable) {
         const label = document.createElement('span');
         label.textContent = 'Indisponível';
@@ -888,13 +1014,18 @@
     }));
     const price = document.querySelector('.product-price-large');
     if (price) price.textContent = formatMoney(product.price);
+    const originalPrice = document.querySelector('[data-original-price]');
+    if (originalPrice) {
+      originalPrice.hidden = product.promotionalPriceCents == null;
+      originalPrice.textContent = product.promotionalPriceCents == null ? '' : formatMoney(product.originalPrice);
+    }
     const colorLabel = document.querySelector('#selected-color');
     if (colorLabel) colorLabel.textContent = firstAvailableColor;
     const description = document.querySelector('.product-detail-note');
-    if (description) description.textContent = `${product.name} com modelagem confortável e acabamento pensado para acompanhar diferentes ocasiões.`;
+    if (description) description.textContent = product.description;
     const productDescription = document.querySelector('.product-details p');
-    if (productDescription) productDescription.textContent = `${product.name}: ${product.note}. Confira as opções de cor e tamanho disponíveis para este modelo.`;
-    selectProductColor(firstAvailableColor);
+    if (productDescription) productDescription.textContent = product.description;
+    if (firstAvailableColor) selectProductColor(firstAvailableColor);
   }
 
   async function calculateShipping() {
@@ -980,7 +1111,7 @@
   document.querySelector('[data-product-add]')?.addEventListener('click', () => {
     const color = document.querySelector('#selected-color')?.textContent.trim();
     const size = document.querySelector('#selected-size')?.textContent.trim();
-    if (!Object.hasOwn(product.images, color) || !productSizes(product, color).includes(size)) {
+    if (!product || !Object.hasOwn(product.images, color) || !hasStock(product, color, size)) {
       showFeedback('Selecione uma cor e um tamanho disponíveis.');
       return;
     }
@@ -1119,16 +1250,46 @@
     if (event.key === 'Escape' && !document.querySelector('[data-cart-drawer]')?.hidden) closeCartDrawer();
   });
 
-  initializeProductListing();
-  initializeStoreSearch();
-  initializeProductDetail();
-  initializeRecommendations();
-  initializeAddressSuggestions();
-  updateBagCount();
-  renderCart();
-  renderCheckout();
-  renderConfirmation();
-  renderTracking();
+  async function initializeStore() {
+    try {
+      await fetchCatalog();
+      initializeCategoryLinks();
+      initializeGenericCategory();
+      initializeProductListing();
+      initializeFeaturedProducts();
+      initializeStyleGuideProduct();
+      initializeStoreSearch();
+      if (document.querySelector('.product-detail')) {
+        if (product) initializeProductDetail();
+        else {
+          const title = document.querySelector('.product-info h1');
+          if (title) title.textContent = 'Produto indisponível';
+          const action = document.querySelector('[data-product-add]');
+          if (action) action.disabled = true;
+          showFeedback('Este produto não está disponível ou foi removido do catálogo.');
+        }
+      }
+      if (product) initializeRecommendations();
+      initializeAddressSuggestions();
+    } catch (error) {
+      document.querySelectorAll('[data-product-list], [data-featured-products]').forEach((list) => {
+        const message = document.createElement('p');
+        message.className = 'product-list-empty';
+        message.textContent = error.message;
+        list.replaceChildren(message);
+      });
+      const title = document.querySelector('.product-info h1');
+      if (title) title.textContent = 'Catálogo indisponível';
+      showFeedback(error.message);
+    }
+    updateBagCount();
+    renderCart();
+    renderCheckout();
+    renderConfirmation();
+    renderTracking();
+  }
+
+  void initializeStore();
   window.addEventListener('storage', () => {
     updateBagCount();
     renderCart();

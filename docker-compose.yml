@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fsi-store-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fsi_store
+      POSTGRES_USER: fsi_store
+      POSTGRES_PASSWORD: fsi_store_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - fsi-store-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fsi_store -d fsi_store"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  fsi-store-data:

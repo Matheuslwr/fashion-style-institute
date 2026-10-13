@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Produtos | Administração FSI Studio</title>
+  <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="../css/admin-produtos.css">
+</head>
+<body>
+  <div class="announcement">FSI Studio <span>•</span> administração do catálogo</div>
+  <main class="store admin-store">
+    <header class="store-header admin-header">
+      <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
+      <h1>Produtos</h1>
+      <a class="text-link" href="design-de-moda-com-proposito.html">Voltar à loja</a>
+    </header>
+
+    <section class="admin-login" data-admin-login>
+      <p class="kicker">Acesso restrito</p>
+      <h2>Administração do catálogo</h2>
+      <form data-login-form>
+        <label class="admin-field">Usuário<input name="username" autocomplete="username" required></label>
+        <label class="admin-field">Senha<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="store-button" type="submit">Entrar</button>
+        <p class="admin-feedback" data-login-feedback role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="admin-workspace" data-admin-workspace hidden>
+      <div class="admin-toolbar">
+        <div><p class="kicker">Gerenciamento</p><h2>Catálogo</h2></div>
+        <div class="admin-toolbar-actions">
+          <button class="admin-secondary-button" type="button" data-logout>Sair</button>
+          <button class="store-button" type="button" data-new-product>Novo produto</button>
+        </div>
+      </div>
+      <p class="admin-feedback" data-admin-feedback role="status" aria-live="polite"></p>
+      <div class="admin-content">
+        <section class="admin-products" aria-label="Produtos cadastrados">
+          <h3>Produtos cadastrados</h3>
+          <div class="admin-product-list" data-admin-product-list></div>
+        </section>
+
+        <section class="admin-editor" data-product-editor hidden>
+          <div class="admin-editor-heading"><div><p class="kicker">Cadastro</p><h3 data-editor-title>Novo produto</h3></div><button class="admin-secondary-button" type="button" data-cancel-edit>Fechar</button></div>
+          <form data-product-form>
+            <input name="databaseId" type="hidden">
+            <label class="admin-field">Nome<input name="name" maxlength="140" required></label>
+            <label class="admin-field">Descrição<textarea name="description" maxlength="4000" rows="4" required></textarea></label>
+            <div class="admin-form-row">
+              <label class="admin-field">Preço (R$)<input name="price" type="number" min="0" step="0.01" required></label>
+              <label class="admin-field">Preço promocional (R$)<input name="promotionalPrice" type="number" min="0" step="0.01"></label>
+            </div>
+            <div class="admin-category-row">
+              <label class="admin-field">Categoria<select name="categoryId" required data-category-select></select></label>
+              <button class="admin-secondary-button" type="button" data-add-category>Nova categoria</button>
+            </div>
+            <div class="admin-new-category" data-new-category hidden>
+              <label class="admin-field">Nome da nova categoria<input name="newCategoryName" maxlength="80" data-new-category-name></label>
+              <div class="admin-new-category-actions"><button class="admin-secondary-button" type="button" data-cancel-new-category>Cancelar</button><button class="admin-secondary-button" type="button" data-create-category>Criar categoria</button></div>
+            </div>
+            <div class="admin-toggle-row">
+              <label><input name="featured" type="checkbox"> Produto em destaque</label>
+              <label><input name="active" type="checkbox" checked> Ativo na loja</label>
+            </div>
+
+            <fieldset class="admin-fieldset">
+              <legend>Imagens</legend>
+              <label class="admin-field">Cor associada (opcional)<input name="imageColor" maxlength="80" placeholder="Ex.: Preto"></label>
+              <label class="admin-field">Adicionar imagens<input name="images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-image-files></label>
+              <p class="admin-hint">JPEG, PNG, WebP ou GIF; até 8 MB por imagem. Para associar outra cor, altere o campo e envie outro grupo de imagens.</p>
+              <div class="admin-image-list" data-image-list></div>
+            </fieldset>
+
+            <fieldset class="admin-fieldset">
+              <legend>Variantes, SKU e estoque</legend>
+              <p class="admin-hint">Cadastre uma linha para cada combinação de cor e tamanho.</p>
+              <div class="admin-variant-list" data-variant-list></div>
+              <button class="admin-secondary-button" type="button" data-add-variant>Adicionar variante</button>
+            </fieldset>
+
+            <div class="admin-form-actions">
+              <button class="admin-secondary-button" type="button" data-cancel-edit>Cancelar</button>
+              <button class="store-button" type="submit" data-save-product>Salvar produto</button>
+            </div>
+            <p class="admin-feedback" data-form-feedback role="status" aria-live="polite"></p>
+          </form>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="../js/api-config.js" defer></script>
+  <script src="../js/admin-produtos.js" defer></script>
+</body>
+</html>
