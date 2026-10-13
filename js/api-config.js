@@ -1,1 +1,1 @@
-window.FSI_API_BASE_URL = 'http://localhost:8080';
+window.FSI_API_BASE_URL = 'https://fsi-store-api.onrender.com';
