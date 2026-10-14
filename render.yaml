@@ -19,7 +19,7 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: CORS_ALLOWED_ORIGINS
-        value: https://matheuslwr.github.io
+        value: https://matheuslwr.github.io,https://fashion-style-institute.vercel.app
       - key: IMAGE_STORAGE
         value: cloudinary
       - key: CLOUDINARY_URL

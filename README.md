@@ -91,7 +91,7 @@ O repositório inclui `backend/Dockerfile` e `render.yaml` para publicar a API n
    - `DATABASE_URL`: URL JDBC completa do Neon, com `sslmode=require` e sem senha embutida.
    - `DATABASE_USERNAME` e `DATABASE_PASSWORD`: usuário e senha do Neon.
    - `ADMIN_PASSWORD`: senha forte exclusiva para o painel.
-   - `CORS_ALLOWED_ORIGINS` já está definido no Blueprint como `https://matheuslwr.github.io`, a origem do GitHub Pages atual. Se trocar para um domínio próprio, altere esse valor para a nova origem HTTPS, sem caminho. Não use `*`.
+   - `CORS_ALLOWED_ORIGINS` já está definido no Blueprint para o GitHub Pages (`https://matheuslwr.github.io`) e para a Vercel (`https://fashion-style-institute.vercel.app`). Se trocar de domínio, atualize também essa variável no Render para incluir a nova origem HTTPS, sem caminho. Não use `*`.
    - `CLOUDINARY_URL`: valor **API Environment variable** do Cloudinary.
    - `ADMIN_USERNAME` já está definido como `admin`; altere depois pelo ambiente se desejar outro nome.
 5. Aguarde o deploy. O endpoint de saúde configurado é `/api/categories`. Teste `https://<nome-do-servico>.onrender.com/api/categories` e `/api/products` no navegador. O Render pode levar aproximadamente um minuto para responder após inatividade.
@@ -115,7 +115,7 @@ O `vercel.json` publica apenas os arquivos do site (`index.html`, `css/`, `img/`
 2. Na Vercel, escolha **Add New → Project**, importe este repositório e mantenha a pasta raiz como diretório do projeto.
 3. A configuração do repositório define o comando de build e a pasta publicada. A cada push na branch `main`, a Vercel publica uma nova versão e fornece um endereço gratuito `*.vercel.app`.
 
-A API continua no Render; o endereço está em `js/api-config.js`. Portanto, não é necessário alterar o Neon, o Cloudinary ou as variáveis secretas do Render para hospedar o site na Vercel. O GitHub continua sendo o repositório do código, mas não aparece no endereço `vercel.app`.
+A API continua no Render; o endereço está em `js/api-config.js`. O CORS da API precisa permitir a origem da Vercel; essa origem já está incluída em `render.yaml`, junto com o GitHub Pages. Se a Vercel for configurada com outro domínio, atualize também `CORS_ALLOWED_ORIGINS` no Render. Não é necessário alterar o Neon nem o Cloudinary para hospedar o site na Vercel. O GitHub continua sendo o repositório do código, mas não aparece no endereço `vercel.app`.
 
 Para sair do plano gratuito futuramente, use um serviço sempre ativo e armazenamento de imagens persistente. Não remova a configuração Cloudinary sem mover os arquivos existentes e atualizar os URLs das imagens.
 
