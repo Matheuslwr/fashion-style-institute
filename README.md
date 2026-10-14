@@ -72,7 +72,7 @@ As rotas administrativas usam HTTP Basic. O navegador envia a credencial somente
 
 ## Publicação gratuita
 
-O repositório inclui `backend/Dockerfile` e `render.yaml` para publicar a API no Render. A configuração gratuita usa o Neon já criado para PostgreSQL e o Cloudinary para que imagens sobrevivam a reinícios. O site continua no GitHub Pages.
+O repositório inclui `backend/Dockerfile` e `render.yaml` para publicar a API no Render. A configuração gratuita usa o Neon já criado para PostgreSQL e o Cloudinary para que imagens sobrevivam a reinícios. O site estático pode ser publicado no GitHub Pages ou na Vercel.
 
 **Limites importantes do plano gratuito:** o Render suspende o serviço após 15 minutos sem tráfego e o primeiro acesso pode levar cerca de um minuto para acordá-lo. O sistema de arquivos do Render Free é temporário, portanto o backend usa Cloudinary em produção. O Neon também suspende o compute quando fica inativo. Esses planos são adequados para teste e projetos pessoais, mas não oferecem disponibilidade contínua nem SLA. Confira os limites atuais dos provedores antes de publicar para uso comercial.
 
@@ -106,6 +106,16 @@ O `render.yaml` marca segredos como `sync: false`; eles são pedidos no primeiro
 4. Abra a página administrativa publicada em `https://seu-usuario.github.io/<repositorio>/pages/admin-produtos.html`. HTTP Basic protege os endpoints de escrita; cadastros e atualizações públicos só funcionam com a senha administrativa configurada no Render.
 
 Os produtos e categorias ficam no PostgreSQL; imagens novas ficam no Cloudinary e suas URLs HTTPS são gravadas no PostgreSQL. As imagens iniciais, já versionadas em `img/Produtos/`, continuam sendo servidas pelo GitHub Pages. Os arquivos enviados durante o teste local ficam na pasta local indicada por `UPLOAD_DIR` e não são copiados automaticamente ao Cloudinary.
+
+### Site estático na Vercel
+
+O `vercel.json` publica apenas os arquivos do site (`index.html`, `css/`, `img/`, `js/` e `pages/`), sem tentar executar a API Java no serviço da Vercel. Para usar:
+
+1. Envie `vercel.json` e as demais alterações ao GitHub.
+2. Na Vercel, escolha **Add New → Project**, importe este repositório e mantenha a pasta raiz como diretório do projeto.
+3. A configuração do repositório define o comando de build e a pasta publicada. A cada push na branch `main`, a Vercel publica uma nova versão e fornece um endereço gratuito `*.vercel.app`.
+
+A API continua no Render; o endereço está em `js/api-config.js`. Portanto, não é necessário alterar o Neon, o Cloudinary ou as variáveis secretas do Render para hospedar o site na Vercel. O GitHub continua sendo o repositório do código, mas não aparece no endereço `vercel.app`.
 
 Para sair do plano gratuito futuramente, use um serviço sempre ativo e armazenamento de imagens persistente. Não remova a configuração Cloudinary sem mover os arquivos existentes e atualizar os URLs das imagens.
 

@@ -2,3 +2,4 @@
 /backend/uploads/
 /uploads/
 /.env
+/dist/

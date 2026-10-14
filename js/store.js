@@ -3,6 +3,8 @@
   let productsById = new Map();
   let categories = [];
   let product = null;
+  let catalogReady = false;
+  let catalogLoadError = false;
   const apiBase = (window.FSI_API_BASE_URL || '').replace(/\/$/, '');
   const cartKey = 'fsi-demo-cart-v1';
   const orderKey = 'fsi-demo-order-v1';
@@ -164,6 +166,20 @@
     };
 
     const renderResults = (query) => {
+      if (catalogLoadError) {
+        const unavailable = document.createElement('p');
+        unavailable.className = 'store-search-empty';
+        unavailable.textContent = 'O catálogo está indisponível no momento. Atualize a página para tentar novamente.';
+        results.replaceChildren(unavailable);
+        return;
+      }
+      if (!catalogReady) {
+        const loading = document.createElement('p');
+        loading.className = 'store-search-hint';
+        loading.textContent = 'Carregando produtos...';
+        results.replaceChildren(loading);
+        return;
+      }
       const terms = normalizeLocation(query).replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
       if (!terms.length) {
         const hint = document.createElement('p');
@@ -232,6 +248,7 @@
       }
     });
     search.querySelector('[data-search-close]').addEventListener('click', closeSearch);
+    return () => renderResults(input.value);
   }
 
   function createCatalogCard(item, headingTag = 'h2') {
@@ -1251,14 +1268,16 @@
   });
 
   async function initializeStore() {
+    const refreshSearch = initializeStoreSearch();
     try {
       await fetchCatalog();
+      catalogReady = true;
+      refreshSearch?.();
       initializeCategoryLinks();
       initializeGenericCategory();
       initializeProductListing();
       initializeFeaturedProducts();
       initializeStyleGuideProduct();
-      initializeStoreSearch();
       if (document.querySelector('.product-detail')) {
         if (product) initializeProductDetail();
         else {
@@ -1272,7 +1291,9 @@
       if (product) initializeRecommendations();
       initializeAddressSuggestions();
     } catch (error) {
-      document.querySelectorAll('[data-product-list], [data-featured-products]').forEach((list) => {
+      catalogLoadError = true;
+      refreshSearch?.();
+      document.querySelectorAll('[data-category-list], [data-product-list], [data-featured-products]').forEach((list) => {
         const message = document.createElement('p');
         message.className = 'product-list-empty';
         message.textContent = error.message;
