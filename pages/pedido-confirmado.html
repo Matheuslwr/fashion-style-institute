@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Confirmação de pedido demonstrativo da FSI Studio.">
-  <title>Pedido demonstrativo | FSI Studio</title>
+  <meta name="description" content="Pagamento e detalhes do seu pedido FSI Studio.">
+  <title>Pagamento do pedido | FSI Studio</title>
   <link rel="stylesheet" href="../css/loja.css">
 </head>
 <body>
-  <div class="announcement">FSI Studio <span>•</span> confirmação demonstrativa</div>
+  <div class="announcement">FSI Studio <span>•</span> pagamento e pedido</div>
   <main class="store checkout-page" data-order-confirmation>
     <header class="store-header">
       <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
@@ -17,21 +17,31 @@
     </header>
 
     <section class="order-result is-hidden" data-no-order>
-      <p class="kicker">Nenhum pedido nesta sessão</p><h1>Não há uma confirmação para mostrar.</h1>
+      <p class="kicker">Pedido não encontrado</p><h1>Não encontramos este pedido.</h1>
       <a class="store-button" href="design-de-moda-com-proposito.html">Voltar à loja <span aria-hidden="true">↗</span></a>
     </section>
 
     <section class="order-result is-hidden" data-order-details>
-      <p class="kicker">FSI Studio · demonstração</p><h1>Pedido demonstrativo confirmado.</h1>
-      <p class="demo-notice" role="note"><strong>Importante:</strong> nenhum pagamento foi realizado nem produto será enviado. O frete é uma estimativa por distância, não uma cotação de transportadora.</p>
+      <p class="kicker">FSI Studio · pedido <span data-order-payment-status></span></p><h1 data-order-heading>Seu pedido</h1>
+      <p class="demo-notice" data-order-status-message role="status" aria-live="polite">Consultando o status do pedido...</p>
       <p class="order-number">Referência <strong data-order-number></strong></p>
+      <section class="pix-payment is-hidden" data-pix-payment aria-labelledby="pix-title">
+        <h2 id="pix-title">Pague com Pix</h2>
+        <p>Abra o aplicativo do seu banco, escaneie o QR Code ou copie o código abaixo. Confira o nome do recebedor antes de pagar. A loja confirmará o pedido somente depois de verificar o crédito no extrato; comprovante enviado não substitui essa verificação.</p>
+        <img data-pix-qr alt="QR Code Pix para pagamento deste pedido">
+        <p class="summary-note is-hidden" data-pix-generation role="status">Estamos preparando o QR Code Pix para este pedido.</p>
+        <label class="form-field">Pix copia e cola<textarea data-pix-payload rows="4" readonly></textarea></label>
+        <button class="store-button" type="button" data-copy-pix>Copiar código Pix</button>
+        <p class="summary-note">Este QR Code reserva o estoque por até 48 horas. Se o prazo passar, confirme a disponibilidade com a loja antes de pagar.</p>
+      </section>
+      <p class="demo-notice is-hidden" data-payment-received role="status"><strong>Pagamento conferido pela loja.</strong> A loja ainda precisa preparar e postar o pedido. As datas de entrega abaixo são estimativas; não há rastreamento ao vivo.</p>
+      <p class="demo-notice is-hidden" data-payment-review role="alert"><strong>O pagamento foi recebido, mas o pedido precisa de revisão manual.</strong> Entre em contato com a loja antes de aguardar a expedição.</p>
       <div class="order-items" data-order-items></div>
       <p class="order-summary-line"><span>Destino e distância estimada</span><strong data-order-destination></strong></p>
       <p class="order-summary-line"><span>Subtotal</span><strong data-order-subtotal></strong></p>
       <p class="order-summary-line"><span>Frete estimado</span><strong data-order-shipping></strong></p>
-      <p class="order-summary-line"><span>Total demonstrativo</span><strong data-order-total></strong></p>
-      <p class="order-summary-line"><span>Forma escolhida</span><strong data-order-payment></strong></p>
-      <a class="store-button" href="acompanhar-pedido.html">Ver acompanhamento estimado <span aria-hidden="true">↗</span></a>
+      <p class="order-summary-line"><span>Total do pedido</span><strong data-order-total></strong></p>
+      <a class="store-button" data-order-tracking href="acompanhar-pedido.html">Ver etapas estimadas <span aria-hidden="true">↗</span></a>
       <a class="store-button" href="design-de-moda-com-proposito.html">Continuar na loja <span aria-hidden="true">↗</span></a>
     </section>
     <footer class="store-footer"><a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a><p>Moda com propósito, presença com verdade.</p><p>© 2026 FSI Studio</p></footer>

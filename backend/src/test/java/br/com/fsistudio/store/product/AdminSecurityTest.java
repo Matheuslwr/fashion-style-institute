@@ -2,7 +2,9 @@ package br.com.fsistudio.store.product;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 import java.util.List;
 
@@ -47,5 +49,16 @@ class AdminSecurityTest {
         when(products.listPublic(null, null, null)).thenReturn(List.of());
         mockMvc.perform(get("/api/products"))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    void checkoutCorsAllowsIdempotencyHeader() throws Exception {
+        mockMvc.perform(options("/api/orders")
+                .header("Origin", "http://localhost:5500")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type,idempotency-key"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Access-Control-Allow-Headers",
+                org.hamcrest.Matchers.containsString("idempotency-key")));
     }
 }

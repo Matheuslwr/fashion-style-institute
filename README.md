@@ -1,6 +1,6 @@
 # Fashion Style Institute
 
-Site estático publicado no GitHub Pages e API de catálogo em Java/Spring Boot com PostgreSQL. O banco é a fonte de produtos, categorias, preços, imagens, variantes e estoque. O carrinho continua no `localStorage`; checkout, frete, confirmação e acompanhamento permanecem demonstrativos, sem pagamento ou pedidos reais.
+Site estático publicado na Vercel e API de catálogo em Java/Spring Boot com PostgreSQL. O banco é a fonte de produtos, categorias, preços, imagens, variantes e estoque. O carrinho fica no `localStorage`; o checkout cria pedidos no PostgreSQL e um QR Pix direto para a chave bancária configurada. A confirmação do pagamento é manual no painel administrativo. Frete e etapas de entrega são estimativas, não cotações ou rastreamento de transportadora.
 
 ## Requisitos locais
 
@@ -67,6 +67,10 @@ Os dados permanecem no volume nomeado. Para apagá-los, remova esse volume expli
 | `DELETE` | `/api/admin/products/{id}` | Administrador | Exclui produto |
 | `POST` | `/api/admin/categories` | Administrador | Cadastra categoria |
 | `POST` | `/api/admin/images` | Administrador | Envia imagem multipart, até 8 MB |
+| `POST` | `/api/orders` | Público | Cria pedido e QR Pix com valor e referência |
+| `GET` | `/api/orders/{id}` | Público | Consulta pagamento e dados não sensíveis do pedido |
+| `GET` | `/api/admin/orders` | Administrador | Lista até 100 pedidos recentes e dados de entrega |
+| `POST` | `/api/admin/orders/{id}/confirm-payment` | Administrador | Confirma pagamento após conferir o crédito no banco |
 
 As rotas administrativas usam HTTP Basic. O navegador envia a credencial somente durante a sessão do painel; ela não é gravada em `localStorage` ou `sessionStorage`. O backend valida os dados e o banco protege SKUs e combinações repetidas de cor/tamanho.
 
@@ -98,14 +102,24 @@ O repositório inclui `backend/Dockerfile` e `render.yaml` para publicar a API n
 
 O `render.yaml` marca segredos como `sync: false`; eles são pedidos no primeiro provisionamento. Se o serviço já foi criado, cadastre/atualize os segredos em **Render → serviço → Environment**. Nunca coloque seus valores em `render.yaml`.
 
-### GitHub Pages apontando para a API
+### Vercel apontando para a API
 
 1. Depois que a API estiver ativa, abra `js/api-config.js` e troque `http://localhost:8080` pela URL HTTPS do serviço Render, por exemplo `https://fsi-store-api.onrender.com`.
-2. Confirme que `CORS_ALLOWED_ORIGINS` no Render contém `https://matheuslwr.github.io`. Para GitHub Pages de projeto, CORS usa somente a origem `https://usuario.github.io`, sem `/nome-do-repositorio`.
+2. Confirme que `CORS_ALLOWED_ORIGINS` no Render contém `https://fashion-style-institute.vercel.app`.
 3. Envie essa alteração ao GitHub e publique o site. A API pode acordar lentamente após inatividade; isso não significa que o catálogo perdeu dados.
-4. Abra a página administrativa publicada em `https://seu-usuario.github.io/<repositorio>/pages/admin-produtos.html`. HTTP Basic protege os endpoints de escrita; cadastros e atualizações públicos só funcionam com a senha administrativa configurada no Render.
+4. Abra a página administrativa publicada na Vercel em `/pages/admin-produtos.html`. HTTP Basic protege os endpoints de escrita; cadastros e atualizações públicos só funcionam com a senha administrativa configurada no Render.
 
-Os produtos e categorias ficam no PostgreSQL; imagens novas ficam no Cloudinary e suas URLs HTTPS são gravadas no PostgreSQL. As imagens iniciais, já versionadas em `img/Produtos/`, continuam sendo servidas pelo GitHub Pages. Os arquivos enviados durante o teste local ficam na pasta local indicada por `UPLOAD_DIR` e não são copiados automaticamente ao Cloudinary.
+Os produtos e categorias ficam no PostgreSQL; imagens novas ficam no Cloudinary e suas URLs HTTPS são gravadas no PostgreSQL. As imagens iniciais, já versionadas em `img/Produtos/`, são servidas pelo site estático (Vercel ou GitHub Pages). Os arquivos enviados durante o teste local ficam na pasta local indicada por `UPLOAD_DIR` e não são copiados automaticamente ao Cloudinary.
+
+### Pagamentos Pix e pedidos
+
+O checkout cria um QR Pix com o valor e a referência do pedido, sem intermediador de pagamento. O backend recalcula preços e frete e reserva a disponibilidade por até 48 horas. O QR não confirma o pagamento sozinho: acesse `pages/admin-pedidos.html`, entre com as credenciais administrativas e só marque o pedido como pago depois de conferir o crédito no extrato do banco. Comprovantes enviados pelo cliente não substituem essa verificação. Após a confirmação, o backend baixa o estoque uma única vez. Se o crédito entrar quando já não houver estoque disponível, o pedido fica marcado para revisão manual.
+
+Para configurar no Render, adicione `PIX_KEY`, `PIX_RECEIVER_NAME` e `PIX_RECEIVER_CITY` em **serviço → Environment**. Use a chave Pix da conta bancária que pode receber as vendas, o nome do titular conforme a conta e a cidade do recebedor; essas três informações são necessárias para gerar o QR. Nunca coloque esses valores no GitHub, em arquivos do site ou nesta conversa. A chave e o nome do recebedor serão necessariamente apresentados ao cliente pelo Pix e poderão ser vistos no aplicativo bancário. A aplicação não guarda credenciais bancárias nem acessa o banco.
+
+Antes de publicar esta alteração, configure as três variáveis, teste o QR e o código copia-e-cola com um pagamento pequeno em ambiente controlado, confirme o recebimento no extrato e valide o botão do painel. O pagamento direto não tem webhook nem confirmação automática; alguém precisa conferir o extrato e atualizar os pedidos. Os QR Codes reservam estoque por 48 horas, mas não expiram no sistema bancário: depois desse prazo, o cliente deve confirmar com a loja que o item continua disponível antes de pagar. Proteja as credenciais do administrador e o banco; o painel contém nomes, contatos e endereços. Adicione também proteção contra criação automatizada de pedidos antes de divulgar amplamente a loja.
+
+O rastreamento desta versão mostra o status de pagamento conferido pela loja, mas as etapas e datas de entrega são estimativas, não consulta a uma transportadora. Não use estimativas como prova de envio ou entrega. Para rastreamento real, informe ao cliente o código e a transportadora após a postagem; qualquer ocorrência deve refletir um evento real. Pedidos com pagamento confirmado sem estoque disponível ficam marcados para revisão manual.
 
 ### Site estático na Vercel
 
@@ -125,8 +139,9 @@ Para sair do plano gratuito futuramente, use um serviço sempre ativo e armazena
 - `backend/Dockerfile` e `render.yaml`: imagem Java 21 e Blueprint para o serviço gratuito no Render.
 - `backend/src/main/resources/db/migration/`: esquema do catálogo e carga inicial de produtos/categorias.
 - `pages/admin-produtos.html`, `js/admin-produtos.js`, `css/admin-produtos.css`: painel administrativo.
+- `pages/admin-pedidos.html`, `js/admin-pedidos.js`: painel protegido para consultar pedidos e confirmar manualmente o crédito Pix.
 - `js/api-config.js`: URL base da API por ambiente.
-- `js/store.js`: renderização dinâmica do catálogo; carrinho e checkout demonstrativo continuam no navegador.
+- `js/store.js`: renderização dinâmica do catálogo, carrinho local, checkout Pix, confirmação e etapas estimadas de entrega.
 
 Para executar os testes do backend:
 

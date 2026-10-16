@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Pedidos | Administração FSI Studio</title>
+  <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="../css/admin-produtos.css">
+</head>
+<body>
+  <div class="announcement">FSI Studio <span>•</span> administração de pedidos</div>
+  <main class="store admin-store">
+    <header class="store-header admin-header">
+      <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
+      <h1>Pedidos</h1>
+      <nav class="admin-header-links" aria-label="Administração"><a class="text-link" href="admin-produtos.html">Produtos</a><a class="text-link" href="design-de-moda-com-proposito.html">Voltar à loja</a></nav>
+    </header>
+
+    <section class="admin-login" data-admin-login>
+      <p class="kicker">Acesso restrito</p>
+      <h2>Administração de pedidos</h2>
+      <form data-login-form>
+        <label class="admin-field">Usuário<input name="username" autocomplete="username" required></label>
+        <label class="admin-field">Senha<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="store-button" type="submit">Entrar</button>
+        <p class="admin-feedback" data-login-feedback role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="admin-workspace admin-orders-workspace" data-admin-workspace hidden>
+      <div class="admin-toolbar">
+        <div><p class="kicker">Gerenciamento</p><h2>Pedidos recentes</h2></div>
+        <div class="admin-toolbar-actions">
+          <button class="admin-secondary-button" type="button" data-refresh>Atualizar</button>
+          <button class="admin-secondary-button" type="button" data-logout>Sair</button>
+        </div>
+      </div>
+      <p class="admin-orders-warning">Antes de confirmar, confira o crédito no extrato do banco. Comprovante ou captura de tela enviado pelo cliente não confirma pagamento.</p>
+      <p class="admin-feedback" data-admin-feedback role="status" aria-live="polite"></p>
+      <section class="admin-orders-list" aria-label="Pedidos recebidos" data-admin-orders></section>
+    </section>
+  </main>
+  <script src="../js/api-config.js" defer></script>
+  <script src="../js/admin-pedidos.js" defer></script>
+</body>
+</html>

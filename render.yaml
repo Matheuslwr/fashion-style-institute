@@ -24,3 +24,9 @@ services:
         value: cloudinary
       - key: CLOUDINARY_URL
         sync: false
+      - key: PIX_KEY
+        sync: false
+      - key: PIX_RECEIVER_NAME
+        sync: false
+      - key: PIX_RECEIVER_CITY
+        sync: false

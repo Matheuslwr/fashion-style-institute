@@ -5,9 +5,12 @@
   let product = null;
   let catalogReady = false;
   let catalogLoadError = false;
+  let orderStatusPoll = null;
+  let orderStatusRequestInProgress = false;
+  let paymentAttemptKey = null;
+  const paymentAttemptStorageKey = 'fsi-payment-attempt-key';
   const apiBase = (window.FSI_API_BASE_URL || '').replace(/\/$/, '');
   const cartKey = 'fsi-demo-cart-v1';
-  const orderKey = 'fsi-demo-order-v1';
   const shippingOrigin = { latitude: -25.4284, longitude: -49.2733 };
   const brazilStates = [
     ['AC', 'Acre'], ['AL', 'Alagoas'], ['AP', 'Amapá'], ['AM', 'Amazonas'], ['BA', 'Bahia'],
@@ -34,6 +37,38 @@
     return [...new Set(item.variants.filter((variant) => variant.color === color).map((variant) => variant.size))]
       .sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
   }
+
+  function startOrderStatusPolling(refresh) {
+    if (orderStatusPoll) return;
+    orderStatusPoll = window.setInterval(() => {
+      if (document.hidden || orderStatusRequestInProgress) return;
+      orderStatusRequestInProgress = true;
+      void refresh().finally(() => { orderStatusRequestInProgress = false; });
+    }, 8000);
+  }
+
+  function getPaymentAttemptKey() {
+    if (paymentAttemptKey) return paymentAttemptKey;
+    try {
+      const savedKey = sessionStorage.getItem(paymentAttemptStorageKey);
+      if (savedKey && /^[0-9a-f-]{36}$/i.test(savedKey)) {
+        paymentAttemptKey = savedKey;
+        return paymentAttemptKey;
+      }
+      paymentAttemptKey = crypto.randomUUID();
+      sessionStorage.setItem(paymentAttemptStorageKey, paymentAttemptKey);
+      return paymentAttemptKey;
+    } catch {
+      throw new Error('Não foi possível proteger esta tentativa de pagamento neste navegador. Habilite o armazenamento da sessão e tente novamente.');
+    }
+  }
+
+  function stopOrderStatusPolling() {
+    if (!orderStatusPoll) return;
+    window.clearInterval(orderStatusPoll);
+    orderStatusPoll = null;
+  }
+  stopOrderStatusPolling();
 
   function hasStock(item, color, size) {
     return item.variants.some((variant) => variant.color === color && variant.size === String(size) && variant.stock > 0);
@@ -364,21 +399,33 @@
       const savedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
       if (!Array.isArray(savedCart)) return [];
       return savedCart.filter((item) => {
-        const cartProduct = productsById.get(item.productId);
-        return cartProduct
-          && Object.hasOwn(cartProduct.images, item.color)
-          && hasStock(cartProduct, item.color, item.size)
+        return typeof item.productId === 'string'
+          && typeof item.color === 'string'
+          && typeof item.size === 'string'
           && Number.isInteger(item.quantity)
           && item.quantity > 0;
       }).map((item) => ({
         productId: item.productId,
         color: item.color,
         size: String(item.size),
-        quantity: Math.min(item.quantity, 99)
+        quantity: Math.min(item.quantity, 99),
+        productName: typeof item.productName === 'string' ? item.productName : '',
+        priceCents: Number.isSafeInteger(item.priceCents) ? item.priceCents : null,
+        imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : ''
       }));
     } catch {
       return [];
     }
+  }
+
+  function getCartProduct(item) {
+    const catalogProduct = productsById.get(item.productId);
+    if (catalogProduct) return catalogProduct;
+    return {
+      name: item.productName || 'Produto indisponível',
+      price: item.priceCents ?? 0,
+      images: { default: item.imageUrl }
+    };
   }
 
   function normalizeLocation(value) {
@@ -510,7 +557,7 @@
       list.replaceChildren(emptyMessage);
     } else {
       list.replaceChildren(...cart.map((item) => {
-        const cartProduct = productsById.get(item.productId);
+        const cartProduct = getCartProduct(item);
         const row = document.createElement('article');
         row.className = 'cart-drawer-item';
         const image = document.createElement('img');
@@ -558,7 +605,7 @@
   }
 
   function makeCartRow(item, checkout = false) {
-    const cartProduct = productsById.get(item.productId) || product;
+    const cartProduct = getCartProduct(item);
     const row = document.createElement('article');
     row.className = checkout ? 'checkout-item' : 'cart-item';
 
@@ -625,7 +672,7 @@
   }
 
   function cartTotal(cart) {
-    return cart.reduce((total, item) => total + (productsById.get(item.productId)?.price || 0) * item.quantity, 0);
+    return cart.reduce((total, item) => total + getCartProduct(item).price * item.quantity, 0);
   }
 
   function estimateDistanceKm(latitude, longitude) {
@@ -643,14 +690,6 @@
 
   function estimatedShippingCents(distanceKm) {
     return Math.round((990 + distanceKm * 1.8) / 10) * 10;
-  }
-
-  function readOrder() {
-    try {
-      return JSON.parse(sessionStorage.getItem(orderKey) || 'null');
-    } catch {
-      return null;
-    }
   }
 
   function addBusinessDays(startDate, businessDays) {
@@ -696,42 +735,93 @@
       status
     });
     const events = [
-      event('Pedido demonstrativo recebido', 'Registro criado nesta loja para visualizar as etapas previstas.', 0, 'complete'),
-      event('Preparando pedido', 'Separação da peça e preparação para uma possível expedição.', 0, 'current'),
-      event('Vistoria e embalagem', 'Etapa prevista de conferência da peça e proteção da embalagem.', 1, 'future'),
-      event('Coleta da transportadora', 'Previsão de retirada no centro de expedição de Curitiba (PR).', 2, 'future')
+      event('Pagamento confirmado', 'Recebimento confirmado pelo provedor de pagamento.', 0, 'complete'),
+      event('Preparação do pedido', 'Etapa estimada; a loja ainda não confirmou a separação ou embalagem.', 0, 'current'),
+      event('Postagem na transportadora', 'Previsão ilustrativa. Este site ainda não recebe confirmação de postagem.', 2, 'future')
     ];
 
     hubs.forEach((hub, index) => {
-      events.push(event(`Transferência prevista · ${hub}`, 'Passagem estimada por um centro logístico no caminho até o destino.', 3 + index, 'future'));
+      events.push(event(`Rota provável · ${hub}`, 'Etapa estimada, não confirmada por uma transportadora.', 3 + index, 'future'));
     });
 
     const localUnitDay = Math.max(3 + hubs.length, estimatedDays - 1);
     events.push(event(
-      'Chegada prevista à unidade de entrega',
-      `Triagem local estimada antes da última etapa até ${order.shipping.city} (${order.shipping.state}).`,
+      'Chegada estimada à região de entrega',
+      `Previsão de uma possível triagem antes da entrega em ${order.shipping.city} (${order.shipping.state}).`,
       localUnitDay,
       'future'
     ));
     events.push(event(
-      'Entrega estimada',
-      'Janela aproximada. O dia pode variar conforme a operação da transportadora.',
+      'Janela estimada de entrega',
+      'Previsão ilustrativa; consulte a loja para informações reais de postagem e entrega.',
       estimatedDays,
       'future'
     ));
     return events;
   }
 
-  function renderTracking() {
+  async function renderTracking() {
     const trackingPage = document.querySelector('[data-tracking-order]');
     if (!trackingPage) return;
-    const order = readOrder();
-    if (!order?.shipping || !Array.isArray(order.items)) {
-      trackingPage.querySelector('[data-tracking-empty]')?.classList.remove('is-hidden');
-      trackingPage.querySelector('[data-tracking-details]')?.classList.add('is-hidden');
+    const orderId = new URLSearchParams(window.location.search).get('pedido');
+    if (orderId) {
+      let order;
+      try {
+        const response = await fetch(`${apiBase}/api/orders/${encodeURIComponent(orderId)}`);
+        if (!response.ok) {
+          const error = new Error('Não foi possível consultar o pedido. Confira o link e tente novamente.');
+          error.status = response.status;
+          throw error;
+        }
+        order = await response.json();
+      } catch (error) {
+        const empty = trackingPage.querySelector('[data-tracking-empty]');
+        empty?.classList.remove('is-hidden');
+        const message = empty?.querySelector('[data-tracking-empty-copy]');
+        if (message) message.textContent = error.status === 404
+          ? error.message
+          : `${error.message} Tentaremos consultar novamente em alguns segundos.`;
+        trackingPage.querySelector('[data-tracking-details]')?.classList.add('is-hidden');
+        if (error.status !== 404) startOrderStatusPolling(renderTracking);
+        return;
+      }
+      if (order.paymentStatus !== 'RECEIVED') {
+        if (order.paymentStatus === 'PENDING') startOrderStatusPolling(renderTracking);
+        else stopOrderStatusPolling();
+        const pending = trackingPage.querySelector('[data-tracking-pending]');
+        pending?.classList.remove('is-hidden');
+        const status = pending?.querySelector('[data-tracking-payment-status]');
+        if (status) {
+          const paymentMessages = {
+            PAYMENT_FAILED: 'A cobrança não foi gerada. Volte às instruções do pedido para iniciar uma nova tentativa.',
+            RECEIVED_REVIEW: 'A loja recebeu o pagamento, mas precisa revisar a disponibilidade do pedido. Entre em contato com a loja.'
+          };
+          status.textContent = paymentMessages[order.paymentStatus]
+            || 'Aguardando a conferência do pagamento pela loja. A previsão de entrega será exibida após a confirmação.';
+        }
+        const paymentLink = pending?.querySelector('[data-tracking-payment-link]');
+        if (paymentLink) paymentLink.href = `pedido-confirmado.html?pedido=${encodeURIComponent(order.id)}`;
+        trackingPage.querySelector('[data-tracking-details]')?.classList.add('is-hidden');
+        trackingPage.querySelector('[data-tracking-empty]')?.classList.add('is-hidden');
+        return;
+      }
+      trackingPage.querySelector('[data-tracking-pending]')?.classList.add('is-hidden');
+      trackingPage.querySelector('[data-tracking-empty]')?.classList.add('is-hidden');
+      order = {
+        ...order,
+        number: order.orderNumber,
+        shipping: { city: order.city, state: order.state, distanceKm: order.distanceKm },
+        items: order.items
+      };
+      renderTrackingDetails(trackingPage, order);
       return;
     }
 
+    trackingPage.querySelector('[data-tracking-empty]')?.classList.remove('is-hidden');
+    trackingPage.querySelector('[data-tracking-details]')?.classList.add('is-hidden');
+  }
+
+  function renderTrackingDetails(trackingPage, order) {
     const hubs = estimatedRouteHubs(order.shipping.state);
     const distanceKm = Number(order.shipping.distanceKm) || 0;
     const estimatedDays = Math.min(14, Math.max(4, Math.ceil(distanceKm / 500) + 3, hubs.length + 4));
@@ -742,7 +832,7 @@
 
     trackingPage.querySelector('[data-tracking-number]').textContent = order.number;
     trackingPage.querySelector('[data-tracking-destination]').textContent = `${order.shipping.city} (${order.shipping.state})`;
-    trackingPage.querySelector('[data-tracking-update]').textContent = `Etapa atual simulada · pedido recebido em ${formatDate(orderedAt, { year: 'numeric' })}.`;
+    trackingPage.querySelector('[data-tracking-update]').textContent = `Pagamento recebido; aguardando confirmação real de expedição. Pedido criado em ${formatDate(orderedAt, { year: 'numeric' })}.`;
     const earliestDays = Math.max(1, estimatedDays - 1);
     const latestDays = estimatedDays + 1;
     const startDate = addBusinessDays(orderedAt, earliestDays);
@@ -751,7 +841,7 @@
     trackingPage.querySelector('[data-delivery-start]').dateTime = startDate.toISOString();
     trackingPage.querySelector('[data-delivery-end]').textContent = formatDate(endDate);
     trackingPage.querySelector('[data-delivery-end]').dateTime = endDate.toISOString();
-    trackingPage.querySelector('[data-delivery-duration]').textContent = `Previsão de ${earliestDays} a ${latestDays} dias úteis após a confirmação demonstrativa.`;
+    trackingPage.querySelector('[data-delivery-duration]').textContent = `Estimativa de ${earliestDays} a ${latestDays} dias úteis após a confirmação do pagamento. Ainda não é uma confirmação de postagem.`;
 
     const routeStops = [
       'Expedição estimada · Curitiba (PR)',
@@ -771,7 +861,7 @@
     }));
 
     const timeline = trackingPage.querySelector('[data-tracking-timeline]');
-    const statusLabels = { complete: 'Registrado', current: 'Etapa atual simulada', future: 'Previsto' };
+    const statusLabels = { complete: 'Pagamento confirmado', current: 'Etapa estimada', future: 'Previsão' };
     const events = createTrackingEvents(order, hubs, estimatedDays);
     timeline.replaceChildren(...events.map((item) => {
       const entry = document.createElement('li');
@@ -824,7 +914,7 @@
     const shippingSummary = document.querySelector('[data-shipping-summary]');
     if (shippingSummary) {
       shippingSummary.textContent = quoteMatchesPostalCode
-        ? `Destino: ${shippingQuote.city} - ${shippingQuote.state}. Distância estimada: ${shippingQuote.distanceKm.toLocaleString('pt-BR')} km desde Curitiba (PR). Valor demonstrativo, não é cotação de transportadora.`
+      ? `Destino: ${shippingQuote.city} - ${shippingQuote.state}. Distância estimada: ${shippingQuote.distanceKm.toLocaleString('pt-BR')} km desde Curitiba (PR). O valor é estimado e não é cotação de transportadora.`
         : 'Estimativa pela distância desde Curitiba (PR); o valor não substitui a cotação de uma transportadora.';
     }
 
@@ -1138,7 +1228,15 @@
       showCartToast('Erro ao adicionar ao carrinho: este item já está no carrinho.');
       return;
     }
-    cart.push({ productId: product.id, color, size, quantity: 1 });
+    cart.push({
+      productId: product.id,
+      color,
+      size,
+      quantity: 1,
+      productName: product.name,
+      priceCents: product.price,
+      imageUrl: product.images[color] || product.images.default || ''
+    });
     writeCart(cart);
     renderMiniCart(cart);
     openCartDrawer();
@@ -1175,7 +1273,7 @@
     renderShipping();
   });
 
-  document.querySelector('[data-checkout-form]')?.addEventListener('submit', (event) => {
+  document.querySelector('[data-checkout-form]')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const cart = readCart();
     if (!cart.length) return;
@@ -1191,50 +1289,177 @@
       renderShipping();
       return;
     }
-    const selectedPayment = document.querySelector('input[name="payment-method"]:checked');
-    const order = {
-      number: `FSI-${Date.now().toString().slice(-8)}`,
-      createdAt: new Date().toISOString(),
-      items: cart,
-      subtotal: cartTotal(cart),
-      shipping: {
-        city: shippingQuote.city,
-        state: shippingQuote.state,
-        distanceKm: shippingQuote.distanceKm,
-        shippingCents: shippingQuote.shippingCents
-      },
-      total: cartTotal(cart) + shippingQuote.shippingCents,
-      payment: selectedPayment?.value || 'Pix (simulação)'
-    };
+    const form = event.currentTarget;
+    const submitButton = form.querySelector('.checkout-submit');
+    const feedback = form.querySelector('[data-store-feedback]');
+    const field = (name) => form.elements.namedItem(name).value.trim();
+    submitButton.disabled = true;
+    submitButton.textContent = 'Gerando Pix...';
+    feedback.textContent = 'Validando estoque e endereço, depois vamos gerar o QR Code Pix.';
     try {
-      sessionStorage.setItem(orderKey, JSON.stringify(order));
-    } catch {
-      showFeedback('Não foi possível concluir a demonstração neste navegador.');
-      return;
+      const idempotencyKey = getPaymentAttemptKey();
+      const response = await fetch(`${apiBase}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Idempotency-Key': idempotencyKey
+        },
+        body: JSON.stringify({
+          customer: {
+            name: field('name'),
+            email: field('email'),
+            phone: field('phone')
+          },
+          address: {
+            postalCode,
+            state: selectedState.uf,
+            city: shippingQuote.city,
+            street: field('address'),
+            number: field('number'),
+            complement: field('complement'),
+            neighborhood: field('neighborhood')
+          },
+          items: cart.map((item) => ({
+            productSlug: item.productId,
+            color: item.color,
+            size: item.size,
+            quantity: item.quantity
+          }))
+        })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Não foi possível gerar a cobrança Pix. Tente novamente ou entre em contato com a loja.');
+      if (!result.id) throw new Error('A loja não retornou a referência do pedido. Entre em contato antes de tentar novamente.');
+      if (result.paymentStatus === 'PAYMENT_FAILED') {
+        sessionStorage.removeItem(paymentAttemptStorageKey);
+        paymentAttemptKey = null;
+        throw new Error('Não foi criada uma cobrança Pix. Você pode tentar gerar outra cobrança com segurança.');
+      }
+      sessionStorage.removeItem(paymentAttemptStorageKey);
+      paymentAttemptKey = null;
+      writeCart([]);
+      window.location.href = `pedido-confirmado.html?pedido=${encodeURIComponent(result.id)}`;
+    } catch (error) {
+      feedback.textContent = error.message;
+      submitButton.disabled = false;
+      submitButton.innerHTML = 'Gerar Pix <span aria-hidden="true">↗</span>';
     }
-    writeCart([]);
-    window.location.href = 'pedido-confirmado.html';
   });
 
-  function renderConfirmation() {
+  async function renderConfirmation() {
     const confirmation = document.querySelector('[data-order-confirmation]');
     if (!confirmation) return;
-    const order = readOrder();
-    if (!order || !Array.isArray(order.items)) {
+    const orderId = new URLSearchParams(window.location.search).get('pedido');
+    if (!orderId || !/^[0-9a-f-]{36}$/i.test(orderId)) {
       confirmation.querySelector('[data-no-order]')?.classList.remove('is-hidden');
       confirmation.querySelector('[data-order-details]')?.classList.add('is-hidden');
       return;
     }
-    confirmation.querySelector('[data-order-number]').textContent = order.number;
-    confirmation.querySelector('[data-order-payment]').textContent = order.payment;
-    confirmation.querySelector('[data-order-subtotal]').textContent = formatMoney(order.subtotal);
-    confirmation.querySelector('[data-order-total]').textContent = formatMoney(order.total);
-    confirmation.querySelector('[data-order-shipping]').textContent = formatMoney(order.shipping.shippingCents);
-    confirmation.querySelector('[data-order-destination]').textContent = `${order.shipping.city} - ${order.shipping.state} · ${order.shipping.distanceKm.toLocaleString('pt-BR')} km estimados`;
+    let order;
+    try {
+      const response = await fetch(`${apiBase}/api/orders/${encodeURIComponent(orderId)}`);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = new Error(result.message || 'Não foi possível consultar este pedido.');
+        error.status = response.status;
+        throw error;
+      }
+      order = result;
+    } catch (error) {
+      confirmation.querySelector('[data-no-order]')?.classList.remove('is-hidden');
+      const message = confirmation.querySelector('[data-no-order] h1');
+      if (message) message.textContent = error.status === 404
+        ? error.message
+        : `${error.message} Tentaremos consultar novamente em alguns segundos.`;
+      confirmation.querySelector('[data-order-details]')?.classList.add('is-hidden');
+      if (error.status !== 404) startOrderStatusPolling(renderConfirmation);
+      return;
+    }
+
+    const statusLabels = {
+      PROCESSING: 'Preparando Pix',
+      PENDING: 'Aguardando conferência do Pix',
+      RECEIVED: 'Pagamento confirmado',
+      PAYMENT_FAILED: 'Pix não gerado',
+      RECEIVED_REVIEW: 'Pagamento recebido; pedido em revisão'
+    };
+    const statusLabel = statusLabels[order.paymentStatus] || 'Status indisponível';
+    confirmation.querySelector('[data-order-payment-status]').textContent = statusLabel;
+    confirmation.querySelector('[data-order-heading]').textContent = order.paymentStatus === 'RECEIVED'
+      ? 'Pagamento confirmado.'
+      : order.paymentStatus === 'PENDING'
+        ? 'Finalize seu pagamento Pix.'
+        : 'Atualização do seu pedido.';
+    confirmation.querySelector('[data-order-status-message]').textContent = order.paymentStatus === 'PROCESSING'
+      ? 'Estamos gerando o código Pix. Aguarde a atualização antes de tentar novamente.'
+      : order.paymentStatus === 'PAYMENT_FAILED'
+        ? 'A cobrança Pix não foi gerada.'
+        : order.paymentStatus === 'RECEIVED_REVIEW'
+          ? 'A loja conferiu o pagamento, mas precisa revisar a disponibilidade do pedido. Entre em contato com a loja antes de aguardar a expedição.'
+          : order.paymentStatus === 'PENDING'
+      ? !order.pixQrCode || !order.pixPayload
+        ? 'O Pix foi preparado. Estamos carregando o QR Code; esta página tentará novamente automaticamente.'
+        : 'Aguardando a conferência manual do crédito no banco. Pague somente uma vez usando o QR Code ou código Pix abaixo.'
+        : order.paymentStatus === 'RECEIVED'
+          ? 'A loja conferiu o crédito no banco. A preparação e a postagem ainda precisam acontecer.'
+          : 'O status do pagamento foi atualizado. Entre em contato com a loja para obter ajuda.';
+    confirmation.querySelector('[data-order-number]').textContent = order.orderNumber;
+    confirmation.querySelector('[data-order-subtotal]').textContent = formatMoney(order.subtotalCents);
+    confirmation.querySelector('[data-order-total]').textContent = formatMoney(order.totalCents);
+    confirmation.querySelector('[data-order-shipping]').textContent = formatMoney(order.shippingCents);
+    confirmation.querySelector('[data-order-destination]').textContent = `${order.city} - ${order.state} · ${Number(order.distanceKm).toLocaleString('pt-BR')} km estimados`;
     const list = confirmation.querySelector('[data-order-items]');
-    list.replaceChildren(...order.items.map((item) => makeCartRow(item, true)));
+    list.replaceChildren(...order.items.map((item) => {
+      const row = document.createElement('article');
+      row.className = 'checkout-item';
+      const details = document.createElement('div');
+      details.className = 'checkout-item-details';
+      const name = document.createElement('h2');
+      name.textContent = item.productName;
+      const variant = document.createElement('p');
+      variant.textContent = `Cor: ${item.color} · Tamanho: ${item.size}`;
+      const quantity = document.createElement('span');
+      quantity.className = 'checkout-item-quantity';
+      quantity.textContent = `${item.quantity} × ${formatMoney(item.unitPriceCents)}`;
+      details.append(name, variant, quantity);
+      row.append(details);
+      return row;
+    }));
+    const pixSection = confirmation.querySelector('[data-pix-payment]');
+    pixSection.classList.toggle('is-hidden', order.paymentStatus !== 'PENDING');
+    confirmation.querySelector('[data-payment-received]')?.classList.toggle('is-hidden', order.paymentStatus !== 'RECEIVED');
+    confirmation.querySelector('[data-payment-review]')?.classList.toggle('is-hidden', order.paymentStatus !== 'RECEIVED_REVIEW');
+    const qrImage = confirmation.querySelector('[data-pix-qr]');
+    qrImage.classList.toggle('is-hidden', !order.pixQrCode);
+    if (order.pixQrCode) qrImage.src = order.pixQrCode;
+    const pixPayload = confirmation.querySelector('[data-pix-payload]');
+    pixPayload.value = order.pixPayload || '';
+    pixPayload.classList.toggle('is-hidden', !order.pixPayload);
+    confirmation.querySelector('[data-copy-pix]').classList.toggle('is-hidden', !order.pixPayload);
+    confirmation.querySelector('[data-pix-generation]').classList.toggle('is-hidden', Boolean(order.pixQrCode && order.pixPayload));
+    confirmation.querySelector('[data-order-tracking]').href = `acompanhar-pedido.html?pedido=${encodeURIComponent(order.id)}`;
     confirmation.querySelector('[data-order-details]')?.classList.remove('is-hidden');
+    if (['PROCESSING', 'PENDING'].includes(order.paymentStatus)) {
+      startOrderStatusPolling(renderConfirmation);
+    } else stopOrderStatusPolling();
   }
+
+  document.querySelector('[data-order-confirmation]')?.addEventListener('click', async event => {
+    if (!event.target.closest('[data-copy-pix]')) return;
+    const button = event.target.closest('[data-copy-pix]');
+    const payload = document.querySelector('[data-pix-payload]').value;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API indisponível');
+      await navigator.clipboard.writeText(payload);
+      button.textContent = 'Código copiado';
+    } catch {
+      document.querySelector('[data-pix-payload]').focus();
+      document.querySelector('[data-pix-payload]').select();
+      button.textContent = 'Selecione e copie o código';
+    }
+  });
+
 
   document.addEventListener('click', (event) => {
     const drawer = document.querySelector('[data-cart-drawer]');
@@ -1306,8 +1531,8 @@
     updateBagCount();
     renderCart();
     renderCheckout();
-    renderConfirmation();
-    renderTracking();
+    await renderConfirmation();
+    await renderTracking();
   }
 
   void initializeStore();

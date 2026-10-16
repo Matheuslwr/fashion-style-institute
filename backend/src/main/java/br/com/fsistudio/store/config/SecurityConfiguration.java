@@ -57,7 +57,7 @@ public class SecurityConfiguration {
         configuration.setAllowedOrigins(Arrays.stream(origins.split(","))
             .map(String::trim).filter(origin -> !origin.isEmpty()).toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Idempotency-Key"));
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

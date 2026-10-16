@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Checkout demonstrativo da FSI Studio.">
+  <meta name="description" content="Finalize seu pedido da FSI Studio com pagamento Pix.">
   <title>Finalizar pedido | FSI Studio</title>
   <link rel="stylesheet" href="../css/loja.css">
 </head>
 <body>
-  <div class="announcement">FSI Studio <span>•</span> finalização demonstrativa</div>
+  <div class="announcement">FSI Studio <span>•</span> pagamento Pix seguro</div>
   <main class="store checkout-page">
     <header class="store-header">
       <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
@@ -17,8 +17,8 @@
     </header>
 
     <p class="product-breadcrumb"><a href="design-de-moda-com-proposito.html">Loja</a> / <a href="carrinho.html">Carrinho</a> / Entrega e pagamento</p>
-    <section class="checkout-heading"><p class="kicker">FSI Studio · demonstração</p><h1>Finalizar pedido</h1><p>Informe os dados de entrega e escolha uma forma de pagamento para ver a confirmação simulada.</p></section>
-    <p class="demo-notice" role="note"><strong>Sem cobrança real.</strong> Este checkout não coleta dados de cartão, não processa pagamentos e não envia produtos.</p>
+    <section class="checkout-heading"><p class="kicker">FSI Studio · checkout</p><h1>Finalizar pedido</h1><p>Informe seus dados, confira a estimativa de entrega e gere seu Pix para concluir a compra.</p></section>
+    <p class="demo-notice" role="note"><strong>Pagamento por Pix direto.</strong> O pedido só será confirmado depois que a loja conferir o crédito no extrato bancário. O QR Code reserva o estoque por 48 horas; depois desse prazo, confirme a disponibilidade com a loja antes de pagar. Datas de entrega são estimativas, não rastreamento ao vivo.</p>
 
     <section class="checkout-empty is-hidden" data-checkout-empty>
       <p class="kicker">Nenhum item no carrinho</p>
@@ -35,6 +35,7 @@
             <label class="form-field">E-mail<input type="email" name="email" autocomplete="email" required maxlength="120"></label>
             <label class="form-field">Telefone<input type="tel" name="phone" autocomplete="tel" required maxlength="24"></label>
           </div>
+          <p class="summary-note">Seus dados de contato e endereço são usados pela loja para administrar e entregar o pedido. Não informe dados bancários ou senhas.</p>
         </section>
 
         <section class="checkout-section" aria-labelledby="delivery-heading">
@@ -56,13 +57,12 @@
             <label class="form-field">Complemento <span class="optional-label">opcional</span><input name="complement" autocomplete="address-line2" maxlength="80"></label>
           </div>
           <label class="form-field">Bairro<input name="neighborhood" required maxlength="80"></label>
-          <p class="summary-note">O CEP será consultado na BrasilAPI para identificar a cidade e estimar a distância. O restante do endereço não é enviado a esse serviço.</p>
+          <p class="summary-note">O CEP será consultado para validar a cidade e calcular o frete estimado. O endereço completo fica com a loja para a entrega.</p>
         </section>
 
         <fieldset class="checkout-section payment-section">
-          <legend><span class="kicker">Etapa 03</span><strong>Forma de pagamento</strong></legend>
-          <label class="payment-option"><input type="radio" name="payment-method" value="Pix (simulação)" checked><span><strong>Pix</strong><small>Simulação, sem geração de código ou cobrança</small></span></label>
-          <label class="payment-option"><input type="radio" name="payment-method" value="Cartão de crédito (simulação)"><span><strong>Cartão de crédito</strong><small>Simulação, sem solicitar ou armazenar dados do cartão</small></span></label>
+          <legend><span class="kicker">Etapa 03</span><strong>Pagamento</strong></legend>
+          <div class="payment-option"><span><strong>Pix</strong><small>QR Code com o valor e a referência deste pedido. A confirmação é manual após conferir o crédito no banco.</small></span></div>
         </fieldset>
       </div>
 
@@ -72,8 +72,8 @@
         <p><span>Subtotal</span><strong data-checkout-subtotal>R$ 0,00</strong></p>
         <p><span>Frete estimado</span><strong data-shipping-total>Calcule pelo CEP</strong></p>
         <p class="checkout-grand-total"><span>Total estimado</span><strong data-checkout-total>Aguardando CEP</strong></p>
-        <p class="summary-note" data-shipping-summary>Estimativa pela distância desde Curitiba (PR); o valor não substitui a cotação de uma transportadora.</p>
-        <button class="store-button checkout-submit" type="submit" disabled>Confirmar demonstração <span aria-hidden="true">↗</span></button>
+        <p class="summary-note" data-shipping-summary>O frete será estimado após informar o CEP. A estimativa não é uma cotação de transportadora.</p>
+        <button class="store-button checkout-submit" type="submit" disabled>Gerar Pix <span aria-hidden="true">↗</span></button>
         <a class="back-to-bag" href="carrinho.html">Voltar ao carrinho</a>
         <p class="checkout-feedback" data-store-feedback role="status" aria-live="polite"></p>
       </aside>

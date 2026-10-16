@@ -44,6 +44,7 @@ public class ProductVariant {
     }
 
     void attachTo(Product product) { this.product = product; }
+    public void removeStock(int quantity) { this.stock -= quantity; }
     public UUID getId() { return id; }
     public String getSku() { return sku; }
     public String getColor() { return color; }

@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Acompanhamento estimado de pedido demonstrativo da FSI Studio.">
-  <title>Acompanhamento estimado | FSI Studio</title>
+  <meta name="description" content="Status de pagamento e previsão estimada do pedido FSI Studio.">
+  <title>Pedido e previsão de entrega | FSI Studio</title>
   <link rel="stylesheet" href="../css/loja.css">
 </head>
 <body>
-  <div class="announcement">FSI Studio <span>•</span> acompanhamento demonstrativo</div>
+  <div class="announcement">FSI Studio <span>•</span> status do pedido</div>
   <main class="store checkout-page" data-tracking-order>
     <header class="store-header">
       <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
@@ -18,27 +18,33 @@
 
     <p class="product-breadcrumb"><a href="design-de-moda-com-proposito.html">Loja</a> / <a href="pedido-confirmado.html">Pedido</a> / Acompanhamento</p>
     <section class="order-result is-hidden" data-tracking-empty>
-      <p class="kicker">Sem pedidos</p><h1>Você não tem nenhum pedido a caminho.</h1>
-      <p class="tracking-empty-copy">Faça uma simulação de compra para ver uma previsão de rota e entrega.</p>
+      <p class="kicker">Pedido não encontrado</p><h1>Não encontramos este pedido.</h1>
+      <p class="tracking-empty-copy" data-tracking-empty-copy>Confira o link do pedido ou volte à loja.</p>
       <a class="store-button" href="design-de-moda-com-proposito.html">Voltar à loja <span aria-hidden="true">↗</span></a>
+    </section>
+
+    <section class="order-result is-hidden" data-tracking-pending>
+      <p class="kicker">Status do pagamento</p><h1>O pedido ainda não está liberado para preparação.</h1>
+      <p class="demo-notice" data-tracking-payment-status role="status" aria-live="polite"></p>
+      <a class="store-button" data-tracking-payment-link href="pedido-confirmado.html">Ver instruções de pagamento <span aria-hidden="true">↗</span></a>
     </section>
 
     <div class="tracking-content is-hidden" data-tracking-details>
       <section class="tracking-heading">
-        <p class="kicker">FSI Studio · previsão de transporte</p>
-        <h1>Acompanhe a estimativa do seu pedido.</h1>
-        <p class="demo-notice" role="note"><strong>Simulação, não rastreamento ao vivo.</strong> Não recebemos posições da transportadora. A rota e as etapas abaixo são previsões para ajudar você a visualizar o trajeto provável.</p>
+        <p class="kicker">FSI Studio · status e previsão</p>
+        <h1>Status do pagamento e estimativa de entrega.</h1>
+        <p class="demo-notice" role="note"><strong>Transparência:</strong> o recebimento do Pix é confirmado manualmente pela loja após conferência no banco. A loja ainda precisa preparar e postar o pedido. As etapas abaixo são apenas estimativas e não consultam uma transportadora.</p>
       </section>
 
       <section class="tracking-overview" aria-label="Resumo da previsão">
         <div class="tracking-current">
-          <p class="kicker">Etapa estimada atual</p>
-          <h2 data-tracking-current>Preparando pedido</h2>
+          <p class="kicker">Situação informada pela loja</p>
+          <h2 data-tracking-current>Pagamento recebido</h2>
           <p data-tracking-update></p>
           <p class="tracking-reference">Pedido <strong data-tracking-number></strong> · Destino <strong data-tracking-destination></strong></p>
         </div>
         <div class="tracking-eta">
-          <p class="kicker">Janela estimada de entrega</p>
+          <p class="kicker">Janela ilustrativa de entrega</p>
           <p class="tracking-date-window"><time data-delivery-start></time><span aria-hidden="true"> até </span><time data-delivery-end></time></p>
           <p data-delivery-duration></p>
         </div>
@@ -46,8 +52,8 @@
 
       <section class="tracking-route" aria-labelledby="route-title">
         <div class="tracking-section-heading">
-          <div><p class="kicker">Trajeto provável</p><h2 id="route-title">Caminho logístico estimado</h2></div>
-          <span class="tracking-estimate-tag">Não representa deslocamento real</span>
+          <div><p class="kicker">Trajeto hipotético</p><h2 id="route-title">Possível caminho logístico</h2></div>
+          <span class="tracking-estimate-tag">Não é rastreamento</span>
         </div>
         <ol class="route-stops" data-route-stops></ol>
         <p class="tracking-footnote">Os centros de distribuição são exemplos de um possível percurso entre Curitiba (PR) e o destino informado. As rotas efetivas variam conforme a transportadora.</p>
@@ -55,13 +61,13 @@
 
       <section class="tracking-events" aria-labelledby="events-title">
         <div class="tracking-section-heading">
-          <div><p class="kicker">Etapas</p><h2 id="events-title">Previsão de movimentação</h2></div>
-          <span class="tracking-estimate-tag">Eventos simulados</span>
+          <div><p class="kicker">Etapas hipotéticas</p><h2 id="events-title">Possível sequência de entrega</h2></div>
+          <span class="tracking-estimate-tag">Eventos estimados</span>
         </div>
         <ol class="tracking-timeline" data-tracking-timeline></ol>
       </section>
 
-      <p class="demo-notice tracking-disclaimer" role="note">Esta tela não consulta uma transportadora e não confirma a localização real do produto. Datas e etapas são geradas como estimativa demonstrativa.</p>
+      <p class="demo-notice tracking-disclaimer" role="note">Esta página não comprova que o produto foi separado, postado ou entregue. A loja deve fornecer um código de rastreamento real após a postagem.</p>
       <a class="text-link tracking-back-link" href="design-de-moda-com-proposito.html">Voltar à loja ↗</a>
     </div>
     <footer class="store-footer"><a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a><p>Moda com propósito, presença com verdade.</p><p>© 2026 FSI Studio</p></footer>

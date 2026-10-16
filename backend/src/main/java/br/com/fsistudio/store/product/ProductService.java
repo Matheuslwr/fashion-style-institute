@@ -62,6 +62,7 @@ public class ProductService {
     @Transactional
     public ProductResponse update(UUID id, ProductRequest request) {
         validatePrices(request);
+        products.lockIdById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produto não encontrado"));
         Product product = products.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produto não encontrado"));
         product.replaceImages(List.of());
@@ -75,6 +76,7 @@ public class ProductService {
 
     @Transactional
     public void delete(UUID id) {
+        products.lockIdById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produto não encontrado"));
         Product product = products.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produto não encontrado"));
         products.delete(product);
