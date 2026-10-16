@@ -48,7 +48,10 @@ class AdminSecurityTest {
     void publicCatalogDoesNotRequireAuthentication() throws Exception {
         when(products.listPublic(null, null, null)).thenReturn(List.of());
         mockMvc.perform(get("/api/products"))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andExpect(header().string("X-Frame-Options", "DENY"))
+            .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+            .andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"));
     }
 
     @Test

@@ -121,6 +121,12 @@ Antes de publicar esta alteração, configure as três variáveis, teste o QR e 
 
 O rastreamento desta versão mostra o status de pagamento conferido pela loja, mas as etapas e datas de entrega são estimativas, não consulta a uma transportadora. Não use estimativas como prova de envio ou entrega. Para rastreamento real, informe ao cliente o código e a transportadora após a postagem; qualquer ocorrência deve refletir um evento real. Pedidos com pagamento confirmado sem estoque disponível ficam marcados para revisão manual.
 
+### Proteções de segurança
+
+O painel usa autenticação HTTP Basic validada pela API, com senha armazenada em hash BCrypt; os segredos de produção devem ficar nas variáveis de ambiente do Render, nunca no código ou no frontend. A API valida os DTOs de entrada, usa consultas JPA parametrizadas e restringe operações administrativas. O site publicado na Vercel e a API enviam cabeçalhos de segurança; a API aceita CORS somente das origens configuradas. Uploads de imagem têm limite de 8 MB, tipos permitidos e conferência da assinatura do arquivo.
+
+O site não usa cookies de autenticação; por isso, proteção de cookies e RLS não se aplicam ao modelo atual. O acesso público ao status de pedido usa um UUID aleatório como identificador e não retorna nome, telefone, e-mail nem endereço completo. Não há rate limit ou proteção anti-bot no checkout; antes de divulgar amplamente ou processar volume real, configure limitação de requisições no gateway/serviço de hospedagem e monitore tentativas automatizadas. O plano gratuito e os cabeçalhos do GitHub Pages podem diferir dos da Vercel.
+
 ### Site estático na Vercel
 
 O `vercel.json` publica apenas os arquivos do site (`index.html`, `css/`, `img/`, `js/` e `pages/`), sem tentar executar a API Java no serviço da Vercel. Para usar:

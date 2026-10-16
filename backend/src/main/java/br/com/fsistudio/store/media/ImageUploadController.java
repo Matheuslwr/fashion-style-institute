@@ -1,6 +1,7 @@
 package br.com.fsistudio.store.media;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -46,6 +47,13 @@ public class ImageUploadController {
         if (extension == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Use uma imagem JPEG, PNG, WebP ou GIF");
         }
+        try (InputStream input = file.getInputStream()) {
+            if (!matchesImageSignature(contentType, input.readNBytes(12))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O conteúdo do arquivo não corresponde a uma imagem válida");
+            }
+        } catch (IOException exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Não foi possível ler a imagem", exception);
+        }
         if ("cloudinary".equalsIgnoreCase(storageProvider)) {
             return uploadToCloudinary(file);
         }
@@ -58,6 +66,23 @@ public class ImageUploadController {
         } catch (IOException exception) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Não foi possível salvar a imagem", exception);
         }
+    }
+
+    static boolean matchesImageSignature(String contentType, byte[] header) {
+        return switch (contentType) {
+            case "image/jpeg" -> header.length >= 3
+                && (header[0] & 0xff) == 0xff && (header[1] & 0xff) == 0xd8 && (header[2] & 0xff) == 0xff;
+            case "image/png" -> header.length >= 8
+                && (header[0] & 0xff) == 0x89 && header[1] == 0x50 && header[2] == 0x4e && header[3] == 0x47
+                && header[4] == 0x0d && header[5] == 0x0a && header[6] == 0x1a && header[7] == 0x0a;
+            case "image/webp" -> header.length >= 12
+                && header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46
+                && header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50;
+            case "image/gif" -> header.length >= 6
+                && header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46
+                && header[3] == 0x38 && (header[4] == 0x37 || header[4] == 0x39) && header[5] == 0x61;
+            default -> false;
+        };
     }
 
     private ImageResponse uploadToCloudinary(MultipartFile file) {
