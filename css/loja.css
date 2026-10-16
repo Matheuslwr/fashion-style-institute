@@ -134,6 +134,8 @@ a { color: inherit; }
 .price-filter input { width: 100px; min-width: 0; margin: 0; padding: 7px; color: var(--ink); background: var(--cream); border: 1px solid var(--line); font: inherit; }
 .clear-filters { margin-top: 20px; padding: 9px 0; color: var(--wine); background: transparent; border: 0; border-bottom: 1px solid currentColor; cursor: pointer; font: inherit; font-size: .78rem; font-weight: 700; }
 .product-list-empty { grid-column: 1 / -1; color: var(--muted); line-height: 1.5; }
+.catalog-retry-button { margin: 8px 2px; border: 0; cursor: pointer; font: inherit; font-size: .72rem; }
+.store-search-results .catalog-retry-button { justify-self: start; }
 .category-products { grid-template-columns: repeat(3, 1fr); gap: 42px 16px; }
 .category-products h2 { margin: 0; font-family: "Playfair Display", serif; font-size: 1.35rem; font-weight: 600; }
 .category-editorial { max-width: 700px; margin: 0 auto 80px; padding: 70px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; }

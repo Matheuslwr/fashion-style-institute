@@ -106,21 +106,57 @@
   }
 
   async function fetchCatalog() {
-    let productsResponse;
-    let categoriesResponse;
-    try {
-      [productsResponse, categoriesResponse] = await Promise.all([
-        fetch(`${apiBase}/api/products`),
-        fetch(`${apiBase}/api/categories`)
-      ]);
-    } catch {
-      throw new Error('Não foi possível conectar ao catálogo. Confira se a API está em execução.');
+    async function fetchWithRetry(path) {
+      const retryDelays = [1500, 3000, 6000, 12000];
+      let lastError;
+      for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 20000);
+        try {
+          const response = await fetch(`${apiBase}${path}`, { signal: controller.signal });
+          if (response.ok) return response;
+          const error = new Error(`Falha ao carregar o catálogo (${response.status}).`);
+          error.status = response.status;
+          if (response.status < 500 && response.status !== 408 && response.status !== 429) throw error;
+          lastError = error;
+        } catch (error) {
+          if (error.status && error.status < 500 && error.status !== 408 && error.status !== 429) throw error;
+          lastError = error;
+        } finally {
+          window.clearTimeout(timeout);
+        }
+        if (attempt < retryDelays.length) {
+          await new Promise((resolve) => window.setTimeout(resolve, retryDelays[attempt]));
+        }
+      }
+      const error = new Error('A loja está demorando para responder. A API gratuita pode estar acordando; tente novamente em instantes.');
+      error.cause = lastError;
+      throw error;
     }
-    if (!productsResponse.ok || !categoriesResponse.ok) throw new Error('Não foi possível carregar o catálogo. Tente novamente em instantes.');
-    products = (await productsResponse.json()).map(normalizeProduct);
-    categories = await categoriesResponse.json();
+    const [productsResponse, categoriesResponse] = await Promise.all([
+      fetchWithRetry('/api/products'),
+      fetchWithRetry('/api/categories')
+    ]);
+    const [productData, categoryData] = await Promise.all([
+      productsResponse.json(),
+      categoriesResponse.json()
+    ]);
+    if (!Array.isArray(productData) || !Array.isArray(categoryData)) {
+      throw new Error('A API retornou dados inválidos para o catálogo.');
+    }
+    products = productData.map(normalizeProduct);
+    categories = categoryData;
     productsById = new Map(products.map((item) => [item.id, item]));
     product = productsById.get(new URLSearchParams(window.location.search).get('produto')) || null;
+  }
+
+  function createCatalogRetryButton() {
+    const button = document.createElement('button');
+    button.className = 'store-button catalog-retry-button';
+    button.type = 'button';
+    button.textContent = 'Tentar novamente';
+    button.addEventListener('click', () => window.location.reload());
+    return button;
   }
 
   function initializeStoreSearch() {
@@ -204,8 +240,8 @@
       if (catalogLoadError) {
         const unavailable = document.createElement('p');
         unavailable.className = 'store-search-empty';
-        unavailable.textContent = 'O catálogo está indisponível no momento. Atualize a página para tentar novamente.';
-        results.replaceChildren(unavailable);
+        unavailable.textContent = 'O catálogo ainda não respondeu. A API gratuita pode estar acordando.';
+        results.replaceChildren(unavailable, createCatalogRetryButton());
         return;
       }
       if (!catalogReady) {
@@ -1522,7 +1558,7 @@
         const message = document.createElement('p');
         message.className = 'product-list-empty';
         message.textContent = error.message;
-        list.replaceChildren(message);
+        list.replaceChildren(message, createCatalogRetryButton());
       });
       const title = document.querySelector('.product-info h1');
       if (title) title.textContent = 'Catálogo indisponível';
