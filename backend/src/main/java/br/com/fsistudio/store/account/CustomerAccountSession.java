@@ -14,7 +14,7 @@ import jakarta.persistence.Table;
 @Table(name = "customer_account_sessions")
 public class CustomerAccountSession {
     @Id
-    @Column(name = "token_hash", nullable = false, length = 64)
+    @Column(name = "token_hash", nullable = false, length = 64, columnDefinition = "char(64)")
     private String tokenHash;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
