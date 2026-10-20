@@ -26,8 +26,6 @@
       <div class="product-info">
         <p class="kicker" data-product-category>Categoria</p>
         <h1>Carregando produto...</h1>
-        <p class="product-detail-note"></p>
-        <div class="product-specs"><p><strong>Composição</strong><span>Informações do produto</span></p><p><strong>Detalhes</strong><span>Consulte características deste modelo</span></p></div>
 
         <fieldset class="product-options"><legend>Cor: <strong id="selected-color"></strong></legend><div class="color-options"></div></fieldset>
 
@@ -38,8 +36,8 @@
         <button class="product-action" type="button" data-product-add disabled>Adicionar ao carrinho</button>
         <p class="checkout-feedback" data-store-feedback role="status" aria-live="polite"></p>
         <p class="product-delivery">Pagamento via Pix. A previsão de entrega é estimada e não representa rastreamento ao vivo.</p>
-        <details class="product-details" open><summary>Descrição</summary><p>Confira as opções de cor e tamanho disponíveis para este modelo.</p></details>
-        <details class="product-details"><summary>Cuidados</summary><p>As instruções de cuidado serão informadas junto com os detalhes finais do produto.</p></details>
+        <details class="product-details" open data-product-description-section><summary>Descrição</summary><p data-product-description></p></details>
+        <details class="product-details" data-product-details-section><summary>Detalhes</summary><p data-product-details></p></details>
       </div>
     </section>
 

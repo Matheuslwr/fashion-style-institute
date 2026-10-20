@@ -150,6 +150,7 @@
     productForm.elements.databaseId.value = product?.databaseId || '';
     productForm.elements.name.value = product?.name || '';
     productForm.elements.description.value = product?.description || '';
+    productForm.elements.details.value = product?.details || '';
     productForm.elements.price.value = product ? (product.priceCents / 100).toFixed(2) : '';
     productForm.elements.promotionalPrice.value = product?.promotionalPriceCents == null
       ? '' : (product.promotionalPriceCents / 100).toFixed(2);
@@ -289,6 +290,7 @@
     const payload = {
       name: productForm.elements.name.value.trim(),
       description: productForm.elements.description.value.trim(),
+      details: productForm.elements.details.value.trim(),
       priceCents,
       promotionalPriceCents: promotionalValue === '' ? null : Math.round(Number(promotionalValue) * 100),
       categoryId: productForm.elements.categoryId.value,

@@ -32,7 +32,8 @@ public class ProductService {
             .filter(product -> featured == null || product.isFeatured() == featured)
             .filter(product -> normalizedQuery.isBlank()
                 || product.getName().toLowerCase(Locale.forLanguageTag("pt-BR")).contains(normalizedQuery)
-                || product.getDescription().toLowerCase(Locale.forLanguageTag("pt-BR")).contains(normalizedQuery))
+                || product.getDescription().toLowerCase(Locale.forLanguageTag("pt-BR")).contains(normalizedQuery)
+                || product.getDetails().toLowerCase(Locale.forLanguageTag("pt-BR")).contains(normalizedQuery))
             .map(ProductResponse::from)
             .toList();
     }
@@ -53,7 +54,7 @@ public class ProductService {
         validatePrices(request);
         Category category = category(request.categoryId());
         String slug = uniqueSlug(request.name(), null);
-        Product product = new Product(request.name().trim(), slug, request.description().trim(), request.priceCents(),
+        Product product = new Product(request.name().trim(), slug, request.description().trim(), normalizeDetails(request.details()), request.priceCents(),
             request.promotionalPriceCents(), request.featured(), request.active(), category);
         applyChildren(product, request);
         return ProductResponse.from(products.save(product));
@@ -68,7 +69,8 @@ public class ProductService {
         product.replaceImages(List.of());
         product.replaceVariants(List.of());
         products.flush();
-        product.update(request.name().trim(), product.getSlug(), request.description().trim(),
+        String details = request.details() == null ? product.getDetails() : normalizeDetails(request.details());
+        product.update(request.name().trim(), product.getSlug(), request.description().trim(), details,
             request.priceCents(), request.promotionalPriceCents(), request.featured(), request.active(), category(request.categoryId()));
         applyChildren(product, request);
         return ProductResponse.from(products.save(product));
@@ -95,6 +97,10 @@ public class ProductService {
         if (request.promotionalPriceCents() != null && request.promotionalPriceCents() >= request.priceCents()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O preço promocional deve ser menor que o preço normal");
         }
+    }
+
+    private static String normalizeDetails(String details) {
+        return details == null ? "" : details.trim();
     }
 
     private Category category(UUID id) {

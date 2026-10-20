@@ -143,8 +143,8 @@ Para sair do plano gratuito futuramente, use um serviço sempre ativo e armazena
 
 - `backend/`: API Spring Boot, entidades JPA, validação, segurança, armazenamento local/Cloudinary e migrações Flyway.
 - `backend/Dockerfile` e `render.yaml`: imagem Java 21 e Blueprint para o serviço gratuito no Render.
-- `backend/src/main/resources/db/migration/`: esquema do catálogo e carga inicial de produtos/categorias.
-- `pages/admin-produtos.html`, `js/admin-produtos.js`, `css/admin-produtos.css`: painel administrativo.
+- `backend/src/main/resources/db/migration/`: esquema do catálogo, carga inicial de produtos/categorias e detalhes do produto.
+- `pages/admin-produtos.html`, `js/admin-produtos.js`, `css/admin-produtos.css`: painel administrativo com descrição, detalhes e colunas identificadas para as variantes.
 - `pages/admin-pedidos.html`, `js/admin-pedidos.js`: painel protegido para consultar pedidos e confirmar manualmente o crédito Pix.
 - `js/api-config.js`: URL base da API por ambiente.
 - `js/store.js`: renderização dinâmica do catálogo, carrinho local, checkout Pix, confirmação e etapas estimadas de entrega.

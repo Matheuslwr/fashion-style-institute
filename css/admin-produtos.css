@@ -39,6 +39,7 @@
 .admin-fieldset { min-width: 0; margin: 10px 0 0; padding: 16px; border: 1px solid var(--line); }
 .admin-fieldset legend { padding: 0 7px; color: var(--wine); font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .admin-hint { margin: 5px 0 12px; color: var(--muted); font-size: .74rem; line-height: 1.45; }
+.admin-variant-header { display: grid; grid-template-columns: repeat(4, minmax(70px, 1fr)) 34px; gap: 7px; margin-bottom: 6px; color: var(--wine); font-size: .68rem; font-weight: 700; }
 .admin-image-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; margin: 12px 0; }
 .admin-image-item { position: relative; min-width: 0; border: 1px solid var(--line); }
 .admin-image-item img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
@@ -73,6 +74,9 @@
   .admin-toolbar-actions { flex-direction: column-reverse; align-items: stretch; }
   .admin-products,.admin-editor { padding: 16px; }
   .admin-form-row { grid-template-columns: 1fr; }
+  .admin-variant-header { grid-template-columns: repeat(2, minmax(0, 1fr)) 34px; }
+  .admin-variant-header span:nth-child(3) { grid-column: 1; grid-row: 2; }
+  .admin-variant-header span:nth-child(4) { grid-column: 2; grid-row: 2; }
   .admin-variant-row { grid-template-columns: repeat(2, minmax(0, 1fr)) 34px; }
   .admin-variant-row input:nth-child(3) { grid-column: 1; }
   .admin-variant-row input:nth-child(4) { grid-column: 2; }

@@ -33,6 +33,9 @@ public class Product {
     @Column(nullable = false, columnDefinition = "text")
     private String description;
 
+    @Column(nullable = false, columnDefinition = "text")
+    private String details;
+
     @Column(name = "price_cents", nullable = false)
     private long priceCents;
 
@@ -59,11 +62,12 @@ public class Product {
 
     protected Product() { }
 
-    public Product(String name, String slug, String description, long priceCents,
+    public Product(String name, String slug, String description, String details, long priceCents,
                    Long promotionalPriceCents, boolean featured, boolean active, Category category) {
         this.name = name;
         this.slug = slug;
         this.description = description;
+        this.details = details;
         this.priceCents = priceCents;
         this.promotionalPriceCents = promotionalPriceCents;
         this.featured = featured;
@@ -71,11 +75,12 @@ public class Product {
         this.category = category;
     }
 
-    public void update(String name, String slug, String description, long priceCents,
+    public void update(String name, String slug, String description, String details, long priceCents,
                        Long promotionalPriceCents, boolean featured, boolean active, Category category) {
         this.name = name;
         this.slug = slug;
         this.description = description;
+        this.details = details;
         this.priceCents = priceCents;
         this.promotionalPriceCents = promotionalPriceCents;
         this.featured = featured;
@@ -103,6 +108,7 @@ public class Product {
     public String getName() { return name; }
     public String getSlug() { return slug; }
     public String getDescription() { return description; }
+    public String getDetails() { return details; }
     public long getPriceCents() { return priceCents; }
     public Long getPromotionalPriceCents() { return promotionalPriceCents; }
     public boolean isFeatured() { return featured; }

@@ -49,6 +49,7 @@
             <input name="databaseId" type="hidden">
             <label class="admin-field">Nome<input name="name" maxlength="140" required></label>
             <label class="admin-field">Descrição<textarea name="description" maxlength="4000" rows="4" required></textarea></label>
+            <label class="admin-field">Detalhes<textarea name="details" maxlength="4000" rows="4"></textarea></label>
             <div class="admin-form-row">
               <label class="admin-field">Preço (R$)<input name="price" type="number" min="0" step="0.01" required></label>
               <label class="admin-field">Preço promocional (R$)<input name="promotionalPrice" type="number" min="0" step="0.01"></label>
@@ -77,6 +78,7 @@
             <fieldset class="admin-fieldset">
               <legend>Variantes, SKU e estoque</legend>
               <p class="admin-hint">Cadastre uma linha para cada combinação de cor e tamanho.</p>
+              <div class="admin-variant-header" aria-hidden="true"><span>Cor</span><span>Tamanho</span><span>SKU</span><span>Estoque</span><span></span></div>
               <div class="admin-variant-list" data-variant-list></div>
               <button class="admin-secondary-button" type="button" data-add-variant>Adicionar variante</button>
             </fieldset>

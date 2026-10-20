@@ -9,6 +9,7 @@ public record ProductResponse(
     String name,
     String slug,
     String description,
+    String details,
     long priceCents,
     Long promotionalPriceCents,
     boolean featured,
@@ -19,7 +20,7 @@ public record ProductResponse(
 ) {
     static ProductResponse from(Product product) {
         return new ProductResponse(
-            product.getSlug(), product.getId(), product.getName(), product.getSlug(), product.getDescription(),
+            product.getSlug(), product.getId(), product.getName(), product.getSlug(), product.getDescription(), product.getDetails(),
             product.getPriceCents(), product.getPromotionalPriceCents(), product.isFeatured(), product.isActive(),
             new CategorySummary(product.getCategory().getId(), product.getCategory().getName(), product.getCategory().getSlug()),
             product.getImages().stream().map(image -> new ImageSummary(image.getImageUrl(), image.getAltText(), image.getColor(), image.getDisplayOrder())).toList(),

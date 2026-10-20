@@ -96,6 +96,7 @@
       ...item,
       id: item.slug,
       note: item.description,
+      details: item.details || '',
       price: item.promotionalPriceCents ?? item.priceCents,
       originalPrice: item.priceCents,
       images,
@@ -1164,10 +1165,12 @@
     }
     const colorLabel = document.querySelector('#selected-color');
     if (colorLabel) colorLabel.textContent = firstAvailableColor;
-    const description = document.querySelector('.product-detail-note');
-    if (description) description.textContent = product.description;
-    const productDescription = document.querySelector('.product-details p');
+    const productDescription = document.querySelector('[data-product-description]');
     if (productDescription) productDescription.textContent = product.description;
+    const productDetails = document.querySelector('[data-product-details]');
+    const productDetailsSection = document.querySelector('[data-product-details-section]');
+    if (productDetails) productDetails.textContent = product.details;
+    if (productDetailsSection) productDetailsSection.hidden = !product.details.trim();
     if (firstAvailableColor) selectProductColor(firstAvailableColor);
   }
 
