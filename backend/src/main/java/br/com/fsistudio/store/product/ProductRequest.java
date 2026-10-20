@@ -14,6 +14,8 @@ public record ProductRequest(
     @NotBlank @Size(max = 140) String name,
     @NotBlank @Size(max = 4000) String description,
     @Size(max = 4000) String details,
+    ProductType productType,
+    @Valid WatchMeasurements watchMeasurements,
     @PositiveOrZero long priceCents,
     @PositiveOrZero Long promotionalPriceCents,
     @NotNull UUID categoryId,

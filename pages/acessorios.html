@@ -6,6 +6,7 @@
   <meta name="description" content="Acessórios | FSI Studio">
   <title>Acessórios | FSI Studio</title>
   <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="../css/mobile-nav.css">
 </head>
 <body>
   <div class="announcement">FSI Studio <span>•</span> detalhes que contam histórias</div>
@@ -16,11 +17,24 @@
       <div class="store-actions"><a class="icon-button" href="../index.html" aria-label="Página inicial">⌂</a><a class="tracking-nav-button" href="acompanhar-pedido.html" title="Acompanhar pedido" aria-label="Acompanhar pedido"><span aria-hidden="true">◎</span><span>Acompanhar</span></a><a class="icon-button" href="carrinho.html" aria-label="Carrinho">🛒 <span class="bag-count">0</span></a></div>
     </header>
     <section class="category-heading"><p class="breadcrumb"><a href="design-de-moda-com-proposito.html">Loja</a> / Acessórios</p><p class="kicker">Categoria 02</p><h1>Acessórios</h1><p>Detalhes que transformam uma combinação e revelam o seu jeito de estar no mundo.</p></section>
-    <section class="product-grid category-products" data-product-list data-category="acessorios" aria-live="polite"></section>
+    <section class="category-toolbar" aria-label="Resultados da categoria"><span data-product-count>Carregando produtos...</span><button class="filter-open-button" type="button" data-open-filters>Filtros <span data-filter-count>0</span></button></section>
+    <section class="category-layout">
+      <dialog class="filter-dialog" open data-filter-dialog aria-label="Filtros de produtos">
+        <aside class="filter-panel" data-filter-panel>
+          <header class="filter-panel-heading"><div><p class="kicker">Refine sua busca</p><h2>Filtros</h2></div><button class="filter-close-button" type="button" data-close-filters aria-label="Fechar filtros">×</button></header>
+          <details open><summary>Cor</summary><div class="filter-options filter-options-colors" data-color-filters></div></details>
+          <details open><summary>Tamanho</summary><div class="filter-options" data-size-filters></div></details>
+          <details open><summary>Preço</summary><div class="price-filter"><label for="price-min">De R$<input id="price-min" type="number" min="0" step="10" inputmode="decimal" placeholder="0" aria-label="Preço mínimo"></label><label for="price-max">Até R$<input id="price-max" type="number" min="0" step="10" inputmode="decimal" placeholder="Sem limite" aria-label="Preço máximo"></label></div></details>
+          <footer class="filter-panel-actions"><button class="clear-filters" type="button" data-clear-filters>Limpar tudo</button><button class="store-button filter-apply-button" type="button" data-apply-filters>Ver produtos</button></footer>
+        </aside>
+      </dialog>
+      <div class="product-grid category-products" data-product-list data-category="acessorios" aria-live="polite"></div>
+    </section>
     <section class="category-editorial"><p class="kicker">O detalhe certo</p><h2>Pequenas escolhas, grande presença.</h2><p>Os acessórios completam a imagem sem apagar a pessoa que existe por trás dela.</p></section>
     <footer class="store-footer"><a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a><p>Moda com propósito, presença com verdade.</p><p>© 2026 FSI Studio</p></footer>
   </main>
   <script src="../js/api-config.js" defer></script>
+  <script src="../js/mobile-nav.js" defer></script>
   <script src="../js/store.js" defer></script>
 </body>
 </html>

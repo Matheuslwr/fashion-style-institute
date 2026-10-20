@@ -13,14 +13,24 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import br.com.fsistudio.store.account.CustomerAccountSessionFilter;
+
 @Configuration
 public class SecurityConfiguration {
+    private final CustomerAccountSessionFilter customerSessionFilter;
+
+    public SecurityConfiguration(CustomerAccountSessionFilter customerSessionFilter) {
+        this.customerSessionFilter = customerSessionFilter;
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -33,10 +43,24 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/uploads/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/account/register", "/api/account/verify-email",
+                    "/api/account/verify-email/resend",
+                    "/api/account/login", "/api/account/forgot-password", "/api/account/reset-password").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/account/**").hasRole("CUSTOMER")
                 .anyRequest().permitAll())
             .httpBasic(Customizer.withDefaults())
+            .addFilterBefore(customerSessionFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
+    }
+
+    @Bean
+    FilterRegistrationBean<CustomerAccountSessionFilter> customerSessionFilterRegistration(
+        CustomerAccountSessionFilter filter
+    ) {
+        FilterRegistrationBean<CustomerAccountSessionFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

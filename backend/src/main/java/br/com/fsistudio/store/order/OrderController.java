@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.fsistudio.store.account.CustomerAccount;
+import br.com.fsistudio.store.account.CustomerAccountRepository;
+import br.com.fsistudio.store.account.CustomerPrincipal;
 import jakarta.validation.Valid;
 
 @RestController
@@ -22,16 +26,20 @@ public class OrderController {
     private final StoreOrderService orders;
     private final StoreOrderRepository repository;
     private final PixPaymentService pix;
+    private final CustomerAccountRepository accounts;
 
-    public OrderController(StoreOrderService orders, StoreOrderRepository repository, PixPaymentService pix) {
+    public OrderController(StoreOrderService orders, StoreOrderRepository repository, PixPaymentService pix,
+                           CustomerAccountRepository accounts) {
         this.orders = orders;
         this.repository = repository;
         this.pix = pix;
+        this.accounts = accounts;
     }
 
     @PostMapping("/api/orders")
     public StoreOrderView create(@RequestHeader("Idempotency-Key") String rawIdempotencyKey,
-                                 @Valid @RequestBody CheckoutRequest request) {
+                                 @Valid @RequestBody CheckoutRequest request,
+                                 @AuthenticationPrincipal CustomerPrincipal principal) {
         UUID idempotencyKey;
         try {
             idempotencyKey = UUID.fromString(rawIdempotencyKey);
@@ -46,7 +54,9 @@ public class OrderController {
         }
         StoreOrderService.OrderCreation creation;
         try {
-            creation = orders.createOrder(request, idempotencyKey);
+            CustomerAccount account = principal == null ? null : accounts.findById(principal.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sua sessão expirou. Entre novamente."));
+            creation = orders.createOrder(request, idempotencyKey, account);
         } catch (DataIntegrityViolationException exception) {
             StoreOrder concurrentOrder = repository.findByIdempotencyKey(idempotencyKey).orElse(null);
             if (concurrentOrder == null) throw exception;

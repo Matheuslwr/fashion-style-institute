@@ -1,0 +1,53 @@
+.mobile-bottom-nav { display: none; }
+
+@media (max-width: 800px) {
+  body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .mobile-bottom-nav {
+    position: fixed;
+    z-index: 1200;
+    right: 0;
+    bottom: 0;
+    left: 50%;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: min(100%, 560px);
+    padding: 8px 8px calc(7px + env(safe-area-inset-bottom));
+    color: var(--ink, #201c2a);
+    background: var(--panel, var(--cream, #fffaf5));
+    border: 1px solid var(--line, rgba(32, 28, 42, .1));
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 24px rgba(32, 28, 42, .12);
+    transform: translate(-50%, 0);
+    transition: transform 220ms ease;
+  }
+  .mobile-bottom-nav.is-scroll-hidden { transform: translate(-50%, 110%); }
+  .mobile-bottom-nav-item {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 48px;
+    align-content: center;
+    justify-items: center;
+    gap: 4px;
+    padding: 3px 1px;
+    color: var(--muted, #756d76);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-bottom-nav-item svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+  .mobile-bottom-nav-item span { overflow: hidden; max-width: 100%; font-size: .61rem; font-weight: 600; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-bottom-nav-item[aria-current="page"] { color: var(--wine, #71364f); }
+  .mobile-bottom-nav-item[aria-current="page"] span { font-weight: 700; }
+  .mobile-bottom-nav-item:focus-visible { outline: 2px solid var(--wine, #71364f); outline-offset: -2px; border-radius: 9px; }
+  .mobile-bottom-nav-item small { position: absolute; top: 0; left: calc(50% + 6px); min-width: 15px; padding: 2px 4px; color: var(--cream, #fffaf5); background: var(--wine, #71364f); border-radius: 999px; font-size: .55rem; font-weight: 700; line-height: 1; text-align: center; }
+  .mobile-bottom-nav-item small[hidden] { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-bottom-nav { transition: none; }
+}

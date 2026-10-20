@@ -2,13 +2,20 @@ package br.com.fsistudio.store.media;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +28,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/admin/images")
 public class ImageUploadController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImageUploadController.class);
+    private static final Pattern HTTP_STATUS = Pattern.compile("(?<!\\d)(4\\d\\d|5\\d\\d)(?!\\d)");
     private static final Map<String, String> IMAGE_EXTENSIONS = Map.of(
         "image/jpeg", ".jpg", "image/png", ".png", "image/webp", ".webp", "image/gif", ".gif");
     private final Path uploadDirectory;
@@ -97,9 +106,47 @@ public class ImageUploadController {
                 throw new IOException("O provedor não retornou a URL da imagem");
             }
             return new ImageResponse(imageUrl);
-        } catch (Exception exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Não foi possível enviar a imagem ao Cloudinary", exception);
+        } catch (IOException | IllegalArgumentException exception) {
+            String message = cloudinaryFailureMessage(exception);
+            LOGGER.warn("Cloudinary image upload failed: {}", message);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, message);
         }
+    }
+
+    static String cloudinaryFailureMessage(Throwable exception) {
+        String diagnostic = exception.getMessage() == null ? "" : exception.getMessage();
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof IllegalArgumentException) {
+                return "A variável CLOUDINARY_URL do Render parece inválida. Confira as credenciais e o formato cloudinary://API_KEY:API_SECRET@CLOUD_NAME.";
+            }
+            if (cause instanceof SocketTimeoutException) {
+                return "O Cloudinary demorou demais para responder. Tente uma imagem menor ou repita o envio.";
+            }
+            if (cause instanceof UnknownHostException || cause instanceof ConnectException) {
+                return "A API não conseguiu se conectar ao Cloudinary. Confira a conexão do serviço e tente novamente.";
+            }
+            if (cause.getMessage() != null) diagnostic += " " + cause.getMessage();
+        }
+        String normalized = diagnostic.toLowerCase(java.util.Locale.ROOT);
+        Matcher status = HTTP_STATUS.matcher(diagnostic);
+        String statusCode = status.find() ? status.group(1) : "";
+        if (statusCode.equals("401") || normalized.contains("invalid api key")
+            || normalized.contains("invalid signature") || normalized.contains("authentication")) {
+            return "O Cloudinary recusou a autenticação. Confira a variável CLOUDINARY_URL nas configurações do Render.";
+        }
+        if (statusCode.equals("403") || normalized.contains("not allowed")) {
+            return "A conta Cloudinary não permitiu o envio. Confira as permissões e o plano da conta.";
+        }
+        if (statusCode.equals("413") || normalized.contains("too large") || normalized.contains("file size")) {
+            return "O Cloudinary recusou o tamanho do arquivo. Reduza a imagem e tente novamente.";
+        }
+        if (statusCode.equals("429") || normalized.contains("rate limit")) {
+            return "O Cloudinary atingiu um limite temporário de envios. Aguarde um pouco e tente novamente.";
+        }
+        if (!statusCode.isEmpty() && statusCode.startsWith("5")) {
+            return "O Cloudinary está temporariamente indisponível. Tente enviar a imagem novamente em instantes.";
+        }
+        return "O Cloudinary não concluiu o envio. Confira a variável CLOUDINARY_URL no Render e tente novamente.";
     }
 
     public record ImageResponse(String imageUrl) { }

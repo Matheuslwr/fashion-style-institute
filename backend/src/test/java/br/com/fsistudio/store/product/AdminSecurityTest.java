@@ -15,6 +15,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import br.com.fsistudio.store.account.CustomerAccountSessionFilter;
+import br.com.fsistudio.store.account.CustomerAccountService;
 import br.com.fsistudio.store.config.SecurityConfiguration;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 
@@ -23,13 +25,16 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
     "app.admin.password=test-password",
     "app.cors.allowed-origins=http://localhost:5500"
 })
-@Import(SecurityConfiguration.class)
+@Import({ SecurityConfiguration.class, CustomerAccountSessionFilter.class })
 class AdminSecurityTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
     private ProductService products;
+
+    @MockBean
+    private CustomerAccountService customerAccounts;
 
     @Test
     void adminApiRejectsAnonymousRequests() throws Exception {

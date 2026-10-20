@@ -3,6 +3,9 @@ package br.com.fsistudio.store.media;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+
 import org.junit.jupiter.api.Test;
 
 class ImageUploadControllerTest {
@@ -24,5 +27,17 @@ class ImageUploadControllerTest {
         assertFalse(ImageUploadController.matchesImageSignature("image/png", text));
         assertFalse(ImageUploadController.matchesImageSignature("text/html", text));
         assertFalse(ImageUploadController.matchesImageSignature("image/jpeg", new byte[] {(byte) 0xff}));
+    }
+
+    @Test
+    void reportsActionableCloudinaryAuthenticationFailures() {
+        assertTrue(ImageUploadController.cloudinaryFailureMessage(new IOException("Server returned HTTP code 401"))
+            .contains("CLOUDINARY_URL"));
+    }
+
+    @Test
+    void reportsCloudinaryTimeoutsWithoutHidingTheCause() {
+        assertTrue(ImageUploadController.cloudinaryFailureMessage(new IOException("upload failed",
+            new SocketTimeoutException("read timed out"))).contains("demorou demais"));
     }
 }

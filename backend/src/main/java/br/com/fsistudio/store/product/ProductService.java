@@ -52,9 +52,12 @@ public class ProductService {
     @Transactional
     public ProductResponse create(ProductRequest request) {
         validatePrices(request);
+        ProductType productType = request.productType() == null ? ProductType.STANDARD : request.productType();
+        WatchMeasurements watchMeasurements = validateProductType(productType, request.watchMeasurements());
         Category category = category(request.categoryId());
         String slug = uniqueSlug(request.name(), null);
-        Product product = new Product(request.name().trim(), slug, request.description().trim(), normalizeDetails(request.details()), request.priceCents(),
+        Product product = new Product(request.name().trim(), slug, request.description().trim(), normalizeDetails(request.details()),
+            productType, watchMeasurements, request.priceCents(),
             request.promotionalPriceCents(), request.featured(), request.active(), category);
         applyChildren(product, request);
         return ProductResponse.from(products.save(product));
@@ -70,7 +73,10 @@ public class ProductService {
         product.replaceVariants(List.of());
         products.flush();
         String details = request.details() == null ? product.getDetails() : normalizeDetails(request.details());
-        product.update(request.name().trim(), product.getSlug(), request.description().trim(), details,
+        ProductType productType = request.productType() == null ? product.getProductType() : request.productType();
+        WatchMeasurements watchMeasurements = request.productType() == null && request.watchMeasurements() == null
+            ? product.getWatchMeasurements() : validateProductType(productType, request.watchMeasurements());
+        product.update(request.name().trim(), product.getSlug(), request.description().trim(), details, productType, watchMeasurements,
             request.priceCents(), request.promotionalPriceCents(), request.featured(), request.active(), category(request.categoryId()));
         applyChildren(product, request);
         return ProductResponse.from(products.save(product));
@@ -101,6 +107,17 @@ public class ProductService {
 
     private static String normalizeDetails(String details) {
         return details == null ? "" : details.trim();
+    }
+
+    private static WatchMeasurements validateProductType(ProductType productType, WatchMeasurements measurements) {
+        if (productType == ProductType.WATCH) {
+            if (measurements == null || !measurements.isComplete()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Preencha largura, comprimento, altura e medida do mostrador do relógio");
+            }
+            return measurements;
+        }
+        return null;
     }
 
     private Category category(UUID id) {

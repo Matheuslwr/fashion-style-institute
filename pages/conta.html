@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Acesse sua conta FSI Studio e acompanhe suas compras.">
+  <title>Minha conta | FSI Studio</title>
+  <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="../css/mobile-nav.css">
+  <link rel="stylesheet" href="../css/account.css">
+</head>
+<body>
+  <div class="announcement">FSI Studio <span>•</span> sua história, em cada escolha</div>
+  <main class="store checkout-page account-page">
+    <header class="store-header">
+      <a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a>
+      <nav class="store-nav" aria-label="Navegação da loja"><a href="design-de-moda-com-proposito.html">Loja</a><a href="vestir.html">Vestir</a><a href="acessorios.html">Acessórios</a></nav>
+      <div class="store-actions"><a class="icon-button" href="../index.html" aria-label="Página inicial">⌂</a><a class="icon-button" href="carrinho.html" aria-label="Carrinho">🛒 <span class="bag-count">0</span></a></div>
+    </header>
+
+    <section class="account-shell">
+      <aside class="account-editorial" aria-label="Benefícios da sua conta">
+        <p class="kicker">FSI Studio · sua conta</p>
+        <h1>Suas escolhas,<br><em>sempre por perto.</em></h1>
+        <p>Acompanhe seus pedidos, veja suas compras e continue sua experiência de onde estiver.</p>
+        <div class="account-editorial-mark" aria-hidden="true">F</div>
+        <span class="account-editorial-caption">ESTILO · PRESENÇA · IDENTIDADE</span>
+      </aside>
+
+      <div class="account-panel">
+        <section data-account-view="login">
+          <p class="kicker">Bem-vinda de volta</p>
+          <h2>Acesse sua conta</h2>
+          <p class="account-intro">Entre com seu e-mail ou telefone e sua senha.</p>
+          <form class="account-form" data-login-form>
+            <label class="form-field">E-mail ou telefone
+              <input name="identifier" autocomplete="username" required maxlength="120" placeholder="voce@email.com ou (41) 99999-9999">
+            </label>
+            <label class="form-field">Senha
+              <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+            </label>
+            <button class="store-button account-submit" type="submit">Entrar <span aria-hidden="true">↗</span></button>
+          </form>
+          <button class="account-text-button" type="button" data-show-forgot>Esqueci minha senha</button>
+          <p class="account-switch">Ainda não tem conta? <button class="account-text-button" type="button" data-show-register>Criar conta</button></p>
+        </section>
+
+        <section data-account-view="register" hidden>
+          <p class="kicker">Um espaço só seu</p>
+          <h2>Crie sua conta</h2>
+          <p class="account-intro">Com uma conta, suas novas compras ficam disponíveis em todos os seus dispositivos.</p>
+          <form class="account-form" data-register-form>
+            <label class="form-field">Nome completo
+              <input name="fullName" autocomplete="name" required maxlength="100">
+            </label>
+            <label class="form-field">E-mail
+              <input name="email" type="email" autocomplete="email" required maxlength="120">
+            </label>
+            <label class="form-field">Telefone com DDD
+              <input name="phone" type="tel" autocomplete="tel" inputmode="tel" required maxlength="24" placeholder="(41) 99999-9999">
+            </label>
+            <label class="form-field">Senha <span class="account-field-hint">Pelo menos 12 caracteres</span>
+              <input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="72">
+            </label>
+            <button class="store-button account-submit" type="submit">Criar conta <span aria-hidden="true">↗</span></button>
+          </form>
+          <p class="account-switch">Já tem conta? <button class="account-text-button" type="button" data-show-login>Entrar</button></p>
+        </section>
+
+        <section data-account-view="verify" hidden>
+          <p class="kicker">Só mais um passo</p>
+          <h2>Confirme seu e-mail</h2>
+          <p class="account-intro">Enviamos um código de seis dígitos para <strong data-pending-email></strong>. Ele expira em 10 minutos.</p>
+          <form class="account-form" data-verify-form>
+            <label class="form-field">Código de confirmação
+              <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
+            </label>
+            <button class="store-button account-submit" type="submit">Confirmar e-mail <span aria-hidden="true">↗</span></button>
+          </form>
+          <button class="account-text-button" type="button" data-resend-code>Enviar código novamente</button>
+          <button class="account-text-button" type="button" data-show-register>Usar outro e-mail</button>
+        </section>
+
+        <section data-account-view="forgot" hidden>
+          <p class="kicker">Recuperação de acesso</p>
+          <h2>Vamos ajudar você.</h2>
+          <p class="account-intro">Informe o e-mail da conta. Se ele estiver confirmado, enviaremos um código de recuperação.</p>
+          <form class="account-form" data-forgot-form>
+            <label class="form-field">E-mail
+              <input name="email" type="email" autocomplete="email" required maxlength="120">
+            </label>
+            <button class="store-button account-submit" type="submit">Enviar código <span aria-hidden="true">↗</span></button>
+          </form>
+          <button class="account-text-button" type="button" data-show-login>Voltar ao login</button>
+        </section>
+
+        <section data-account-view="reset" hidden>
+          <p class="kicker">Nova senha</p>
+          <h2>Crie uma senha nova.</h2>
+          <p class="account-intro">Use o código enviado ao e-mail da sua conta.</p>
+          <form class="account-form" data-reset-form>
+            <label class="form-field">E-mail
+              <input name="email" type="email" autocomplete="email" required maxlength="120">
+            </label>
+            <label class="form-field">Código de recuperação
+              <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
+            </label>
+            <label class="form-field">Nova senha <span class="account-field-hint">Pelo menos 12 caracteres</span>
+              <input name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+            </label>
+            <button class="store-button account-submit" type="submit">Salvar nova senha <span aria-hidden="true">↗</span></button>
+          </form>
+          <button class="account-text-button" type="button" data-show-login>Voltar ao login</button>
+        </section>
+
+        <section data-account-view="dashboard" hidden>
+          <p class="kicker">Bem-vinda à sua conta</p>
+          <h2 data-account-name>Minha conta</h2>
+          <div class="account-profile">
+            <p><span>E-mail</span><strong data-account-email></strong></p>
+            <p><span>Telefone</span><strong data-account-phone></strong></p>
+          </div>
+          <div class="account-orders-heading"><h3>Suas últimas compras</h3><a href="acompanhar-pedido.html">Ver histórico ↗</a></div>
+          <p class="account-feedback" data-account-orders-feedback role="status" aria-live="polite"></p>
+          <div class="account-order-list" data-account-orders></div>
+          <button class="account-logout" type="button" data-account-logout>Sair da conta</button>
+        </section>
+
+        <p class="account-feedback" data-account-feedback role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <footer class="store-footer"><a class="store-brand" href="design-de-moda-com-proposito.html"><span class="store-mark">F</span><span>FSI <small>STUDIO</small></span></a><p>Moda com propósito, presença com verdade.</p><p>© 2026 FSI Studio</p></footer>
+  </main>
+  <script src="../js/api-config.js" defer></script>
+  <script src="../js/mobile-nav.js" defer></script>
+  <script src="../js/account.js" defer></script>
+</body>
+</html>

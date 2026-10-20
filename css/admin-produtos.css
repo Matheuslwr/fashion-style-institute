@@ -9,6 +9,8 @@
 .admin-field input,.admin-field textarea,.admin-field select { width: 100%; min-height: 42px; padding: 10px 12px; color: var(--ink); background: var(--cream); border: 1px solid var(--line); border-radius: 0; font: inherit; font-weight: 400; }
 .admin-field textarea { resize: vertical; }
 .admin-field input:focus,.admin-field textarea:focus,.admin-field select:focus { outline: 2px solid var(--wine); outline-offset: 1px; }
+.watch-measurement-fields { margin-top: 0; }
+.watch-measurement-fields[hidden] { display: none; }
 .admin-feedback { min-height: 1.3em; margin: 0; color: var(--wine); font-size: .82rem; line-height: 1.45; }
 .admin-workspace { padding: 48px 0 80px; }
 .admin-toolbar,.admin-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }

@@ -50,6 +50,17 @@
             <label class="admin-field">Nome<input name="name" maxlength="140" required></label>
             <label class="admin-field">Descrição<textarea name="description" maxlength="4000" rows="4" required></textarea></label>
             <label class="admin-field">Detalhes<textarea name="details" maxlength="4000" rows="4"></textarea></label>
+            <label class="admin-field">Tipo de produto<select name="productType" data-product-type><option value="STANDARD">Produto comum</option><option value="WATCH">Relógio</option></select></label>
+            <fieldset class="admin-fieldset watch-measurement-fields" data-watch-measurements hidden>
+              <legend>Medidas do relógio (cm)</legend>
+              <p class="admin-hint">Essas medidas aparecem na página do produto quando a pessoa tocar em “Ver medidas”.</p>
+              <div class="admin-form-row">
+                <label class="admin-field">Largura<input name="watchWidthCm" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" data-watch-measurement required></label>
+                <label class="admin-field">Comprimento<input name="watchLengthCm" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" data-watch-measurement required></label>
+                <label class="admin-field">Altura<input name="watchHeightCm" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" data-watch-measurement required></label>
+                <label class="admin-field">Mostrador<input name="watchDialCm" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" data-watch-measurement required></label>
+              </div>
+            </fieldset>
             <div class="admin-form-row">
               <label class="admin-field">Preço (R$)<input name="price" type="number" min="0" step="0.01" required></label>
               <label class="admin-field">Preço promocional (R$)<input name="promotionalPrice" type="number" min="0" step="0.01"></label>

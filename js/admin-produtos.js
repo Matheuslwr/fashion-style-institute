@@ -13,11 +13,21 @@
   const categoryNameInput = document.querySelector('[data-new-category-name]');
   const imageList = document.querySelector('[data-image-list]');
   const variantList = document.querySelector('[data-variant-list]');
+  const productTypeSelect = document.querySelector('[data-product-type]');
+  const watchMeasurementsFieldset = document.querySelector('[data-watch-measurements]');
   let authorization = '';
   let categories = [];
   let products = [];
   let images = [];
   let uploadInProgress = false;
+
+  function updateWatchMeasurementFields() {
+    const isWatch = productTypeSelect.value === 'WATCH';
+    watchMeasurementsFieldset.hidden = !isWatch;
+    watchMeasurementsFieldset.querySelectorAll('[data-watch-measurement]').forEach(input => {
+      input.required = isWatch;
+    });
+  }
 
   const request = async (path, options = {}) => {
     let response;
@@ -151,6 +161,13 @@
     productForm.elements.name.value = product?.name || '';
     productForm.elements.description.value = product?.description || '';
     productForm.elements.details.value = product?.details || '';
+    productTypeSelect.value = product?.productType || 'STANDARD';
+    const watchMeasurements = product?.watchMeasurements || {};
+    productForm.elements.watchWidthCm.value = watchMeasurements.widthCm ?? '';
+    productForm.elements.watchLengthCm.value = watchMeasurements.lengthCm ?? '';
+    productForm.elements.watchHeightCm.value = watchMeasurements.heightCm ?? '';
+    productForm.elements.watchDialCm.value = watchMeasurements.dialCm ?? '';
+    updateWatchMeasurementFields();
     productForm.elements.price.value = product ? (product.priceCents / 100).toFixed(2) : '';
     productForm.elements.promotionalPrice.value = product?.promotionalPriceCents == null
       ? '' : (product.promotionalPriceCents / 100).toFixed(2);
@@ -180,6 +197,17 @@
   async function uploadImages(files) {
     const name = productForm.elements.name.value.trim() || 'Produto';
     const color = productForm.elements.imageColor.value.trim();
+    if (images.length + files.length > 12) {
+      throw new Error('Cada produto pode ter no máximo 12 imagens. Remova algumas antes de enviar.');
+    }
+    const unsupportedFile = files.find(file => !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type));
+    if (unsupportedFile) {
+      throw new Error(`O arquivo "${unsupportedFile.name}" não é JPEG, PNG, WebP ou GIF.`);
+    }
+    const oversizedFile = files.find(file => file.size > 8 * 1024 * 1024);
+    if (oversizedFile) {
+      throw new Error(`O arquivo "${oversizedFile.name}" ultrapassa o limite de 8 MB.`);
+    }
     for (const file of files) {
       const body = new FormData();
       body.append('file', file);
@@ -208,6 +236,7 @@
   });
 
   document.querySelector('[data-new-product]').addEventListener('click', () => showEditor());
+  productTypeSelect.addEventListener('change', updateWatchMeasurementFields);
   document.querySelectorAll('[data-cancel-edit]').forEach(button => button.addEventListener('click', () => { productEditor.hidden = true; }));
   document.querySelector('[data-add-variant]').addEventListener('click', () => createVariantRow());
   document.querySelector('[data-add-category]').addEventListener('click', () => {
@@ -291,6 +320,13 @@
       name: productForm.elements.name.value.trim(),
       description: productForm.elements.description.value.trim(),
       details: productForm.elements.details.value.trim(),
+      productType: productTypeSelect.value,
+      watchMeasurements: productTypeSelect.value === 'WATCH' ? {
+        widthCm: Number(productForm.elements.watchWidthCm.value),
+        lengthCm: Number(productForm.elements.watchLengthCm.value),
+        heightCm: Number(productForm.elements.watchHeightCm.value),
+        dialCm: Number(productForm.elements.watchDialCm.value)
+      } : null,
       priceCents,
       promotionalPriceCents: promotionalValue === '' ? null : Math.round(Number(promotionalValue) * 100),
       categoryId: productForm.elements.categoryId.value,

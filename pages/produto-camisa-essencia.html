@@ -6,6 +6,7 @@
   <meta name="description" content="Detalhes dos produtos FSI Studio">
   <title>Produto | FSI Studio</title>
   <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="../css/mobile-nav.css">
 </head>
 <body>
   <div class="announcement">FSI Studio <span>•</span> coleção em pequenas edições</div>
@@ -33,6 +34,7 @@
 
         <div class="product-price-large"></div>
         <del class="product-original-price" data-original-price hidden></del>
+        <button class="watch-measurements-trigger" type="button" data-open-watch-measurements hidden><span aria-hidden="true">▤</span> Ver medidas</button>
         <button class="product-action" type="button" data-product-add disabled>Adicionar ao carrinho</button>
         <p class="checkout-feedback" data-store-feedback role="status" aria-live="polite"></p>
         <p class="product-delivery">Pagamento via Pix. A previsão de entrega é estimada e não representa rastreamento ao vivo.</p>
@@ -40,6 +42,17 @@
         <details class="product-details" data-product-details-section><summary>Detalhes</summary><p data-product-details></p></details>
       </div>
     </section>
+
+    <dialog class="watch-measurement-dialog" data-watch-measurements-dialog aria-labelledby="watch-measurements-title">
+      <header class="watch-measurement-heading"><div><p class="kicker">Guia de medidas</p><h2 id="watch-measurements-title">Dimensões do relógio</h2></div><button class="watch-measurement-close" type="button" data-close-watch-measurements aria-label="Fechar medidas">×</button></header>
+      <div class="watch-measurement-grid">
+        <article class="watch-measurement-card"><strong>Largura</strong><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="19"/><path d="M7 32h50M7 28v8m50-8v8"/></svg><span data-watch-width></span></article>
+        <article class="watch-measurement-card"><strong>Comprimento</strong><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="19"/><path d="M32 6v52M28 6h8m-8 52h8"/></svg><span data-watch-length></span></article>
+        <article class="watch-measurement-card"><strong>Altura</strong><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 38c8 0 9-12 17-12h14c8 0 9 12 17 12v8H8zM8 38l7-5m41 5-7-5M12 43h40M19 44v2m26-2v2"/></svg><span data-watch-height></span></article>
+        <article class="watch-measurement-card"><strong>Mostrador</strong><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="19"/><path d="M7 32h50M7 28v8m50-8v8M32 19v13l8 5"/></svg><span data-watch-dial></span></article>
+      </div>
+      <p class="watch-measurement-note">As medidas são aproximadas e podem variar ligeiramente.</p>
+    </dialog>
 
     <section class="product-recommendations" data-product-recommendations aria-labelledby="recommendations-title">
       <div class="section-intro section-intro-row"><div><p class="kicker">Outras possibilidades</p><h2 id="recommendations-title">Sugestões para você</h2></div><a class="text-link" href="vestir.html">Ver todos ↗</a></div>
@@ -58,6 +71,7 @@
   </div>
   <div class="cart-toast" data-cart-toast role="alert" aria-live="assertive" hidden></div>
   <script src="../js/api-config.js" defer></script>
+  <script src="../js/mobile-nav.js" defer></script>
   <script src="../js/store.js" defer></script>
 </body>
 </html>

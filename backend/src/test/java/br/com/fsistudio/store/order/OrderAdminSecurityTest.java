@@ -15,13 +15,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import br.com.fsistudio.store.config.SecurityConfiguration;
+import br.com.fsistudio.store.account.CustomerAccountRepository;
+import br.com.fsistudio.store.account.CustomerAccountSessionFilter;
+import br.com.fsistudio.store.account.CustomerAccountService;
 
 @WebMvcTest(value = OrderController.class, properties = {
     "app.admin.username=admin",
     "app.admin.password=test-password",
     "app.cors.allowed-origins=http://localhost:5500"
 })
-@Import(SecurityConfiguration.class)
+@Import({ SecurityConfiguration.class, CustomerAccountSessionFilter.class })
 class OrderAdminSecurityTest {
     @Autowired
     private MockMvc mockMvc;
@@ -34,6 +37,12 @@ class OrderAdminSecurityTest {
 
     @MockBean
     private PixPaymentService pix;
+
+    @MockBean
+    private CustomerAccountRepository accounts;
+
+    @MockBean
+    private CustomerAccountService customerAccounts;
 
     @Test
     void adminOrderListRejectsAnonymousRequests() throws Exception {

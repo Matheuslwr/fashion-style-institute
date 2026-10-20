@@ -11,6 +11,8 @@
   const paymentAttemptStorageKey = 'fsi-payment-attempt-key';
   const apiBase = (window.FSI_API_BASE_URL || '').replace(/\/$/, '');
   const cartKey = 'fsi-demo-cart-v1';
+  const orderHistoryKey = 'fsi-order-history-v1';
+  const accountTokenKey = 'fsi-account-token-v1';
   const shippingOrigin = { latitude: -25.4284, longitude: -49.2733 };
   const brazilStates = [
     ['AC', 'Acre'], ['AL', 'Alagoas'], ['AP', 'Amapá'], ['AM', 'Amazonas'], ['BA', 'Bahia'],
@@ -36,6 +38,15 @@
   function productSizes(item, color) {
     return [...new Set(item.variants.filter((variant) => variant.color === color).map((variant) => variant.size))]
       .sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
+  }
+
+  function getAccountToken() {
+    try {
+      return sessionStorage.getItem(accountTokenKey);
+    } catch (error) {
+      console.error('Não foi possível acessar a sessão da conta neste navegador.', error);
+      return null;
+    }
   }
 
   function startOrderStatusPolling(refresh) {
@@ -97,6 +108,7 @@
       id: item.slug,
       note: item.description,
       details: item.details || '',
+      productType: item.productType || 'STANDARD',
       price: item.promotionalPriceCents ?? item.priceCents,
       originalPrice: item.priceCents,
       images,
@@ -320,6 +332,12 @@
       }
     });
     search.querySelector('[data-search-close]').addEventListener('click', closeSearch);
+    if (new URLSearchParams(window.location.search).get('buscar') === '1') {
+      search.hidden = false;
+      toggle.setAttribute('aria-expanded', 'true');
+      renderResults(input.value);
+      input.focus();
+    }
     return () => renderResults(input.value);
   }
 
@@ -568,6 +586,7 @@
       const link = counter.closest('a');
       if (link) link.setAttribute('aria-label', `Carrinho com ${count} ${count === 1 ? 'item' : 'itens'}`);
     });
+    window.dispatchEvent(new Event('fsi-cart-updated'));
   }
 
   function showFeedback(message) {
@@ -797,10 +816,200 @@
     return events;
   }
 
+  function readOrderHistory() {
+    let stored;
+    try {
+      stored = localStorage.getItem(orderHistoryKey);
+    } catch (error) {
+      throw new Error('Não foi possível acessar o histórico de pedidos salvo neste dispositivo.', { cause: error });
+    }
+    if (!stored) return [];
+    let orderIds;
+    try {
+      orderIds = JSON.parse(stored);
+    } catch (error) {
+      throw new Error('O histórico de pedidos salvo neste dispositivo está inválido.', { cause: error });
+    }
+    if (!Array.isArray(orderIds)) {
+      throw new Error('O histórico de pedidos salvo neste dispositivo está inválido.');
+    }
+    return [...new Set(orderIds.filter((id) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)))].slice(0, 25);
+  }
+
+  function rememberOrder(orderId) {
+    try {
+      const orderIds = readOrderHistory();
+      localStorage.setItem(orderHistoryKey, JSON.stringify([orderId, ...orderIds.filter((id) => id !== orderId)].slice(0, 25)));
+      return true;
+    } catch (error) {
+      console.error('Não foi possível salvar o pedido no histórico deste dispositivo.', error);
+      return false;
+    }
+  }
+
+  function createHistoryOrderCard(order) {
+    const card = document.createElement('article');
+    card.className = 'order-history-card';
+    const header = document.createElement('div');
+    header.className = 'order-history-card-heading';
+    const number = document.createElement('h2');
+    number.textContent = order.orderNumber;
+    const status = document.createElement('span');
+    status.className = `order-history-status order-history-status-${order.paymentStatus.toLowerCase().replace(/[^a-z_]/g, '')}`;
+    const statusLabels = {
+      PROCESSING: 'Preparando Pix',
+      PENDING: 'Aguardando pagamento',
+      RECEIVED: 'Pagamento confirmado',
+      PAYMENT_FAILED: 'Pix não gerado',
+      RECEIVED_REVIEW: 'Em revisão pela loja'
+    };
+    status.textContent = statusLabels[order.paymentStatus] || 'Status indisponível';
+    header.append(number, status);
+
+    const date = document.createElement('p');
+    date.className = 'order-history-date';
+    const orderedAt = new Date(order.createdAt);
+    date.textContent = Number.isNaN(orderedAt.getTime())
+      ? 'Data da compra indisponível'
+      : `Pedido em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(orderedAt)}`;
+
+    const summary = document.createElement('p');
+    summary.className = 'order-history-summary';
+    const itemCount = order.items.reduce((total, item) => total + item.quantity, 0);
+    summary.textContent = `${itemCount} ${itemCount === 1 ? 'item' : 'itens'} · ${formatMoney(order.totalCents)} · ${order.city} - ${order.state}`;
+
+    const action = document.createElement('a');
+    action.className = 'text-link order-history-action';
+    const targetPage = order.paymentStatus === 'RECEIVED' ? 'acompanhar-pedido.html' : 'pedido-confirmado.html';
+    action.href = `${targetPage}?pedido=${encodeURIComponent(order.id)}`;
+    action.textContent = order.paymentStatus === 'RECEIVED' ? 'Acompanhar entrega ↗' : 'Ver pedido ↗';
+    card.append(header, date, summary, action);
+    return card;
+  }
+
+  async function renderOrderHistory(trackingPage) {
+    const history = trackingPage.querySelector('[data-order-history]');
+    const list = history?.querySelector('[data-order-history-list]');
+    const feedback = history?.querySelector('[data-order-history-feedback]');
+    if (!history || !list) return;
+    history.classList.remove('is-hidden');
+    trackingPage.querySelector('[data-tracking-empty]')?.classList.add('is-hidden');
+    trackingPage.querySelector('[data-tracking-pending]')?.classList.add('is-hidden');
+    trackingPage.querySelector('[data-tracking-details]')?.classList.add('is-hidden');
+    trackingPage.querySelector('.product-breadcrumb')?.classList.add('is-hidden');
+    list.replaceChildren();
+    if (feedback) feedback.textContent = '';
+
+    let orderIds;
+    try {
+      orderIds = readOrderHistory();
+    } catch (error) {
+      if (feedback) feedback.textContent = error.message;
+      return;
+    }
+    if (!orderIds.length) {
+      if (!getAccountToken()) {
+        const empty = document.createElement('p');
+        empty.className = 'order-history-empty';
+        empty.textContent = 'Entre na sua conta para ver compras sincronizadas. Pedidos feitos neste dispositivo também podem aparecer aqui.';
+        const accountLink = document.createElement('a');
+        accountLink.className = 'store-button';
+        accountLink.href = 'conta.html';
+        accountLink.textContent = 'Entrar ou criar conta';
+        list.append(empty, accountLink);
+      }
+    }
+
+    if (feedback) feedback.textContent = 'Carregando suas compras...';
+    history.setAttribute('aria-busy', 'true');
+    let orderResults;
+    const token = getAccountToken();
+    if (token) {
+      orderResults = await Promise.allSettled([fetch(`${apiBase}/api/account/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(data.message || 'Não foi possível consultar as compras da conta.');
+          error.status = response.status;
+          throw error;
+        }
+        if (!Array.isArray(data)) throw new Error('A API retornou um histórico de pedidos inválido.');
+        return data;
+      })]);
+      history.removeAttribute('aria-busy');
+      if (orderResults[0].status === 'fulfilled') {
+        const accountOrders = orderResults[0].value;
+        if (accountOrders.length) {
+          list.replaceChildren(...accountOrders.map(createHistoryOrderCard));
+          if (feedback) feedback.textContent = '';
+          return;
+        }
+        if (!orderIds.length) {
+          const empty = document.createElement('p');
+          empty.className = 'order-history-empty';
+          empty.textContent = 'Ainda não há compras vinculadas à sua conta.';
+          list.append(empty);
+          if (feedback) feedback.textContent = '';
+          history.removeAttribute('aria-busy');
+          return;
+        }
+      } else if (orderResults[0].reason.status === 401) {
+        try { sessionStorage.removeItem(accountTokenKey); } catch (error) {
+          console.error('Não foi possível encerrar uma sessão expirada neste navegador.', error);
+        }
+        if (feedback) feedback.textContent = 'Sua sessão expirou. Entre novamente para consultar compras sincronizadas.';
+      } else {
+        if (feedback) feedback.textContent = 'Não foi possível carregar as compras da conta. Confira sua conexão e tente novamente.';
+        console.error('Não foi possível carregar as compras da conta.', orderResults[0].reason);
+      }
+    }
+    if (!orderIds.length) {
+      history.removeAttribute('aria-busy');
+      return;
+    }
+    orderResults = await Promise.allSettled(orderIds.map(async (orderId) => {
+      const response = await fetch(`${apiBase}/api/orders/${encodeURIComponent(orderId)}`);
+      if (!response.ok) throw new Error(`Falha ao consultar pedido (${response.status}).`);
+      const order = await response.json();
+      if (!order || typeof order.orderNumber !== 'string' || typeof order.paymentStatus !== 'string' || !Array.isArray(order.items)) {
+        throw new Error('A API retornou dados inválidos para este pedido.');
+      }
+      return order;
+    }));
+    history.removeAttribute('aria-busy');
+    let failedLookups = 0;
+    orderResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        list.append(createHistoryOrderCard(result.value));
+      } else {
+        failedLookups += 1;
+        console.error(`Não foi possível carregar o pedido ${orderIds[index]} do histórico.`, result.reason);
+      }
+    });
+    if (failedLookups && feedback) {
+      feedback.textContent = failedLookups === orderIds.length
+        ? 'Não foi possível carregar suas compras agora. Confira sua conexão e tente novamente.'
+        : 'Algumas compras não puderam ser carregadas. Confira sua conexão e atualize a página para tentar novamente.';
+    }
+    if (!list.childElementCount && !failedLookups) {
+      const empty = document.createElement('p');
+      empty.className = 'order-history-empty';
+      empty.textContent = 'Nenhum pedido válido foi encontrado neste dispositivo.';
+      list.append(empty);
+    }
+  }
+
   async function renderTracking() {
     const trackingPage = document.querySelector('[data-tracking-order]');
     if (!trackingPage) return;
     const orderId = new URLSearchParams(window.location.search).get('pedido');
+    if (!orderId) {
+      await renderOrderHistory(trackingPage);
+      return;
+    }
+    trackingPage.querySelector('[data-order-history]')?.classList.add('is-hidden');
+    trackingPage.querySelector('.product-breadcrumb')?.classList.remove('is-hidden');
     if (orderId) {
       let order;
       try {
@@ -853,9 +1062,6 @@
       renderTrackingDetails(trackingPage, order);
       return;
     }
-
-    trackingPage.querySelector('[data-tracking-empty]')?.classList.remove('is-hidden');
-    trackingPage.querySelector('[data-tracking-details]')?.classList.add('is-hidden');
   }
 
   function renderTrackingDetails(trackingPage, order) {
@@ -987,10 +1193,44 @@
     renderShipping();
   }
 
+  async function prefillCheckoutAccount() {
+    const form = document.querySelector('[data-checkout-form]');
+    const token = getAccountToken();
+    if (!form || !token) return;
+    try {
+      const response = await fetch(`${apiBase}/api/account/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const account = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          try { sessionStorage.removeItem(accountTokenKey); } catch (storageError) {
+            console.error('Não foi possível remover uma sessão expirada.', storageError);
+          }
+          const feedback = document.querySelector('[data-store-feedback]');
+          if (feedback) feedback.textContent = 'Sua sessão expirou. Você pode finalizar como visitante ou entrar novamente.';
+          return;
+        }
+        throw new Error(account.message || 'Não foi possível carregar os dados da conta.');
+      }
+      form.elements.namedItem('name').value = account.fullName || '';
+      form.elements.namedItem('email').value = account.email || '';
+      form.elements.namedItem('phone').value = account.phone || '';
+    } catch (error) {
+      console.error('Não foi possível preencher os dados da conta no checkout.', error);
+      const feedback = document.querySelector('[data-store-feedback]');
+      if (feedback) feedback.textContent = 'Não foi possível carregar seus dados da conta. Você ainda pode preencher os dados manualmente.';
+    }
+  }
+
   function initializeProductListing() {
     const list = document.querySelector('[data-product-list]');
     if (!list) return;
     const filterPanel = document.querySelector('[data-filter-panel]');
+    const filterDialog = document.querySelector('[data-filter-dialog]');
+    const openFiltersButton = document.querySelector('[data-open-filters]');
+    const activeFilterCount = document.querySelector('[data-filter-count]');
+    const mobileFilters = window.matchMedia('(max-width: 800px)');
     const colorFilters = filterPanel?.querySelector('[data-color-filters]');
     const sizeFilters = filterPanel?.querySelector('[data-size-filters]');
     const categorySlug = list.dataset.category;
@@ -1011,6 +1251,14 @@
     sizes.sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
     sizes.forEach((size) => sizeFilters && createFilter(sizeFilters, 'filter-size', size));
 
+    const updateFilterControls = () => {
+      if (!filterPanel || !activeFilterCount) return;
+      const checkedCount = filterPanel.querySelectorAll('input[type="checkbox"]:checked').length;
+      const priceCount = Number(Boolean(filterPanel.querySelector('#price-min')?.value))
+        + Number(Boolean(filterPanel.querySelector('#price-max')?.value));
+      activeFilterCount.textContent = String(checkedCount + priceCount);
+    };
+
     const renderFilteredProducts = () => {
       const selectedColors = [...(filterPanel?.querySelectorAll('[name="filter-color"]:checked') || [])].map((input) => input.value);
       const selectedSizes = [...(filterPanel?.querySelectorAll('[name="filter-size"]:checked') || [])].map((input) => input.value);
@@ -1025,6 +1273,9 @@
       });
       const count = document.querySelector('[data-product-count]');
       if (count) count.textContent = `${matches.length} ${matches.length === 1 ? 'produto' : 'produtos'}`;
+      const applyButton = filterPanel?.querySelector('[data-apply-filters]');
+      if (applyButton) applyButton.textContent = `Ver ${matches.length} ${matches.length === 1 ? 'produto' : 'produtos'}`;
+      updateFilterControls();
       if (matches.length) {
         list.replaceChildren(...matches.map((item) => createCatalogCard(item)));
       } else {
@@ -1044,6 +1295,28 @@
       filterPanel.querySelectorAll('input[type="number"]').forEach((input) => { input.value = ''; });
       renderFilteredProducts();
     });
+    const closeFilterDialog = () => {
+      if (filterDialog?.matches(':modal')) filterDialog.close();
+    };
+    openFiltersButton?.addEventListener('click', () => {
+      if (mobileFilters.matches && filterDialog && !filterDialog.matches(':modal')) filterDialog.showModal();
+    });
+    filterPanel?.querySelector('[data-close-filters]')?.addEventListener('click', closeFilterDialog);
+    filterPanel?.querySelector('[data-apply-filters]')?.addEventListener('click', closeFilterDialog);
+    filterDialog?.addEventListener('click', (event) => {
+      if (event.target === filterDialog) closeFilterDialog();
+    });
+    const syncFilterDialogLayout = () => {
+      if (!filterDialog) return;
+      if (mobileFilters.matches) {
+        if (filterDialog.open && !filterDialog.matches(':modal')) filterDialog.close();
+      } else {
+        if (filterDialog.matches(':modal')) filterDialog.close();
+        if (!filterDialog.open) filterDialog.setAttribute('open', '');
+      }
+    };
+    mobileFilters.addEventListener('change', syncFilterDialogLayout);
+    syncFilterDialogLayout();
     renderFilteredProducts();
   }
 
@@ -1102,6 +1375,23 @@
     const colorList = document.querySelector('.color-options');
     const mainImage = document.querySelector('#main-product-image');
     const title = document.querySelector('.product-info h1');
+    const watchMeasurements = product.watchMeasurements;
+    const watchMeasurementsButton = document.querySelector('[data-open-watch-measurements]');
+    const watchMeasurementsDialog = document.querySelector('[data-watch-measurements-dialog]');
+    const formatMeasurement = (value) => `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} cm`;
+    if (product.productType === 'WATCH' && watchMeasurements) {
+      document.querySelector('[data-watch-width]').textContent = formatMeasurement(watchMeasurements.widthCm);
+      document.querySelector('[data-watch-length]').textContent = formatMeasurement(watchMeasurements.lengthCm);
+      document.querySelector('[data-watch-height]').textContent = formatMeasurement(watchMeasurements.heightCm);
+      document.querySelector('[data-watch-dial]').textContent = formatMeasurement(watchMeasurements.dialCm);
+      watchMeasurementsButton.hidden = false;
+      watchMeasurementsButton.addEventListener('click', () => watchMeasurementsDialog.showModal());
+      watchMeasurementsDialog.querySelector('[data-close-watch-measurements]')
+        .addEventListener('click', () => watchMeasurementsDialog.close());
+      watchMeasurementsDialog.addEventListener('click', (event) => {
+        if (event.target === watchMeasurementsDialog) watchMeasurementsDialog.close();
+      });
+    }
     if (title) title.textContent = product.name;
     document.title = `${product.name} | FSI Studio`;
     const productName = document.querySelector('[data-product-name]');
@@ -1342,7 +1632,8 @@
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          'Idempotency-Key': idempotencyKey
+          'Idempotency-Key': idempotencyKey,
+          ...(getAccountToken() ? { Authorization: `Bearer ${getAccountToken()}` } : {})
         },
         body: JSON.stringify({
           customer: {
@@ -1375,6 +1666,7 @@
         paymentAttemptKey = null;
         throw new Error('Não foi criada uma cobrança Pix. Você pode tentar gerar outra cobrança com segurança.');
       }
+      rememberOrder(result.id);
       sessionStorage.removeItem(paymentAttemptStorageKey);
       paymentAttemptKey = null;
       writeCart([]);
@@ -1414,6 +1706,12 @@
       confirmation.querySelector('[data-order-details]')?.classList.add('is-hidden');
       if (error.status !== 404) startOrderStatusPolling(renderConfirmation);
       return;
+    }
+    const savedToHistory = rememberOrder(order.id);
+    const historyNotice = confirmation.querySelector('[data-order-history-notice]');
+    if (historyNotice) {
+      historyNotice.classList.toggle('is-hidden', savedToHistory);
+      if (!savedToHistory) historyNotice.textContent = 'Não foi possível salvar este pedido no histórico deste dispositivo. Guarde o link desta página para consultá-lo depois.';
     }
 
     const statusLabels = {
@@ -1533,6 +1831,7 @@
 
   async function initializeStore() {
     const refreshSearch = initializeStoreSearch();
+    await renderTracking();
     try {
       await fetchCatalog();
       catalogReady = true;
@@ -1570,8 +1869,8 @@
     updateBagCount();
     renderCart();
     renderCheckout();
+    await prefillCheckoutAccount();
     await renderConfirmation();
-    await renderTracking();
   }
 
   void initializeStore();

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.fsistudio.store.account.CustomerAccount;
 import br.com.fsistudio.store.product.Product;
 import br.com.fsistudio.store.product.ProductRepository;
 import br.com.fsistudio.store.product.ProductVariant;
@@ -37,6 +38,11 @@ public class StoreOrderService {
 
     @Transactional
     public OrderCreation createOrder(CheckoutRequest request, UUID idempotencyKey) {
+        return createOrder(request, idempotencyKey, null);
+    }
+
+    @Transactional
+    public OrderCreation createOrder(CheckoutRequest request, UUID idempotencyKey, CustomerAccount account) {
         StoreOrder existing = orders.findByIdempotencyKey(idempotencyKey).orElse(null);
         if (existing != null) return new OrderCreation(existing, false);
         if (request.customer() == null || request.address() == null || request.items() == null) {
@@ -90,6 +96,7 @@ public class StoreOrderService {
             shipping.state(), shipping.city(), address.street().trim(), address.number().trim(),
             address.complement(), address.neighborhood().trim(), shipping.distanceKm(), subtotalCents,
             shipping.shippingCents(), orderItems);
+        if (account != null) order.assignToAccount(account);
         return new OrderCreation(orders.saveAndFlush(order), true);
     }
 
@@ -131,6 +138,13 @@ public class StoreOrderService {
     public StoreOrderView getOrder(UUID id) {
         return orders.findById(id).map(StoreOrderView::from)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomerOrderView> listCustomerOrders(UUID accountId) {
+        return orders.findAllByCustomerAccountIdOrderByCreatedAtDesc(accountId,
+            org.springframework.data.domain.PageRequest.of(0, 100)).stream()
+            .map(CustomerOrderView::from).toList();
     }
 
     private boolean allocateStock(StoreOrder order) {

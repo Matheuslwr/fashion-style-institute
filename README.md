@@ -44,7 +44,11 @@ Site estático publicado na Vercel e API de catálogo em Java/Spring Boot com Po
 
 4. No VS Code, abra `pages/design-de-moda-com-proposito.html` com Live Server e use a porta `5500`. O endereço do backend local já está configurado em `js/api-config.js` como `http://localhost:8080`. A API permite por padrão as origens `localhost:5500`, `127.0.0.1:5500` e `localhost:8080`.
 
-5. Acesse `pages/admin-produtos.html`, entre com as credenciais definidas no passo 2 e cadastre produtos. O painel permite incluir imagens e variantes e definir estoque, preço promocional, categoria, destaque e status ativo. Categorias novas ganham uma página de listagem genérica automaticamente.
+5. Acesse `pages/admin-produtos.html`, entre com as credenciais definidas no passo 2 e cadastre produtos. O painel permite incluir imagens e variantes e definir estoque, preço promocional, categoria, destaque e status ativo. Para relógios, selecione o tipo **Relógio** e preencha as quatro medidas em centímetros; elas aparecerão na página do produto no botão **Ver medidas**. Nas categorias, os filtros aparecem em uma folha inferior no celular/tablet e ficam ao lado dos produtos em telas maiores. Categorias novas ganham uma página de listagem genérica automaticamente.
+
+   Em telas de até 800 px, a navegação inferior oferece Início, Loja, Carrinho, Pedidos e busca de produtos; ela se recolhe ao rolar para baixo e reaparece ao rolar para cima. O histórico em **Pedidos** mantém a consulta local dos pedidos de visitante e, quando a pessoa entra na conta, também mostra as compras vinculadas a ela.
+
+6. Em [Minha conta](pages/conta.html), clientes podem criar conta, confirmar e-mail, entrar com e-mail ou telefone e senha, recuperar a senha e consultar compras em outros dispositivos. As contas usam senha com hash BCrypt e sessões revogáveis. Para confirmar e-mail e recuperar senha, configure um SMTP que você já tenha ou um provedor com faixa gratuita: `MAIL_HOST`, `MAIL_PORT` (normalmente `587`), `MAIL_USERNAME`, `MAIL_PASSWORD` e `MAIL_FROM`. Não há envio de SMS: isso evita custo por mensagem. O telefone é um identificador alternativo da conta, protegido pela mesma senha; a posse do número não é verificada por SMS. A confirmação associa à conta pedidos anteriores com o mesmo e-mail; compras novas feitas com sessão iniciada ficam vinculadas automaticamente. A migração `V6__create_customer_accounts.sql` é aplicada pelo Flyway quando a API inicia.
 
 Para interromper o banco local:
 
@@ -69,10 +73,19 @@ Os dados permanecem no volume nomeado. Para apagá-los, remova esse volume expli
 | `POST` | `/api/admin/images` | Administrador | Envia imagem multipart, até 8 MB |
 | `POST` | `/api/orders` | Público | Cria pedido e QR Pix com valor e referência |
 | `GET` | `/api/orders/{id}` | Público | Consulta pagamento e dados não sensíveis do pedido |
+| `POST` | `/api/account/register` | Público | Cria conta e envia código de confirmação por e-mail |
+| `POST` | `/api/account/verify-email` | Público | Confirma e-mail e inicia sessão |
+| `POST` | `/api/account/verify-email/resend` | Público | Solicita novo código de confirmação |
+| `POST` | `/api/account/login` | Público | Inicia sessão por e-mail ou telefone e senha |
+| `POST` | `/api/account/forgot-password` | Público | Solicita código de recuperação de senha |
+| `POST` | `/api/account/reset-password` | Público | Altera senha usando código de recuperação |
+| `GET` | `/api/account/me` | Cliente autenticado | Consulta perfil da conta |
+| `GET` | `/api/account/orders` | Cliente autenticado | Lista compras vinculadas à conta |
+| `POST` | `/api/account/logout` | Cliente autenticado | Revoga a sessão atual |
 | `GET` | `/api/admin/orders` | Administrador | Lista até 100 pedidos recentes e dados de entrega |
 | `POST` | `/api/admin/orders/{id}/confirm-payment` | Administrador | Confirma pagamento após conferir o crédito no banco |
 
-As rotas administrativas usam HTTP Basic. O navegador envia a credencial somente durante a sessão do painel; ela não é gravada em `localStorage` ou `sessionStorage`. O backend valida os dados e o banco protege SKUs e combinações repetidas de cor/tamanho.
+As rotas administrativas usam HTTP Basic. O navegador envia a credencial somente durante a sessão do painel; ela não é gravada em `localStorage` ou `sessionStorage`. As rotas autenticadas de cliente usam `Authorization: Bearer` e o token é guardado no `sessionStorage` do navegador; cada dispositivo precisa entrar separadamente. O backend valida os dados e o banco protege SKUs e combinações repetidas de cor/tamanho.
 
 ## Publicação gratuita
 
@@ -110,6 +123,8 @@ O `render.yaml` marca segredos como `sync: false`; eles são pedidos no primeiro
 4. Abra a página administrativa publicada na Vercel em `/pages/admin-produtos.html`. HTTP Basic protege os endpoints de escrita; cadastros e atualizações públicos só funcionam com a senha administrativa configurada no Render.
 
 Os produtos e categorias ficam no PostgreSQL; imagens novas ficam no Cloudinary e suas URLs HTTPS são gravadas no PostgreSQL. As imagens iniciais, já versionadas em `img/Produtos/`, são servidas pelo site estático (Vercel ou GitHub Pages). Os arquivos enviados durante o teste local ficam na pasta local indicada por `UPLOAD_DIR` e não são copiados automaticamente ao Cloudinary.
+
+Se o envio de uma imagem falhar, o painel mostra uma orientação conforme a causa provável (credenciais, limite da conta, conexão ou demora). Confira apenas no painel do Render se `CLOUDINARY_URL` está configurada com a variável de ambiente copiada do Cloudinary; não cole o valor em conversas nem o publique no repositório. O arquivo pode ter até 8 MB e a API aceita JPEG, PNG, WebP ou GIF.
 
 ### Pagamentos Pix e pedidos
 

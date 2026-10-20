@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import br.com.fsistudio.store.account.CustomerAccount;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -82,6 +86,10 @@ public class StoreOrder {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_account_id")
+    private CustomerAccount customerAccount;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("productName ASC")
     private List<StoreOrderItem> items = new ArrayList<>();
@@ -132,6 +140,7 @@ public class StoreOrder {
     }
 
     public void updatePaymentStatus(String status) { this.paymentStatus = status; }
+    public void assignToAccount(CustomerAccount account) { this.customerAccount = account; }
     public UUID getId() { return id; }
     public String getOrderNumber() { return orderNumber; }
     public UUID getIdempotencyKey() { return idempotencyKey; }
@@ -154,5 +163,6 @@ public class StoreOrder {
     public String getPixQrCode() { return pixQrCode; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getPaidAt() { return paidAt; }
+    public CustomerAccount getCustomerAccount() { return customerAccount; }
     public List<StoreOrderItem> getItems() { return items; }
 }
