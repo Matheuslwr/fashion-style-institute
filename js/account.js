@@ -22,11 +22,11 @@
     return Object.fromEntries(new FormData(form).entries());
   }
 
-  async function request(path, body, token) {
+  async function request(path, body, token, method = 'POST') {
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
     const response = await fetch(`${apiBase}${path}`, {
-      method: 'POST',
+      method,
       headers,
       body: JSON.stringify(body)
     });
@@ -244,6 +244,37 @@
       showView('login');
       feedback.textContent = 'Você saiu da sua conta.';
     }
+  });
+
+  const closeAccountForm = root.querySelector('[data-account-close-form]');
+  root.querySelector('[data-account-close-trigger]').addEventListener('click', () => {
+    closeAccountForm.hidden = false;
+    closeAccountForm.elements.password.focus();
+  });
+  root.querySelector('[data-account-close-cancel]').addEventListener('click', () => {
+    closeAccountForm.reset();
+    closeAccountForm.hidden = true;
+  });
+  closeAccountForm.addEventListener('submit', event => {
+    event.preventDefault();
+    void submit(closeAccountForm, async data => {
+      const token = sessionStorage.getItem(tokenKey);
+      if (!token) throw new Error('Sua sessão expirou. Entre novamente.');
+      await request('/api/account', data, token, 'DELETE');
+      let sessionCleared = true;
+      try {
+        sessionStorage.removeItem(tokenKey);
+      } catch (error) {
+        sessionCleared = false;
+        console.error('A conta foi encerrada, mas a sessão local não pôde ser removida.', error);
+      }
+      closeAccountForm.reset();
+      closeAccountForm.hidden = true;
+      showView('login');
+      feedback.textContent = sessionCleared
+        ? 'Sua conta foi encerrada. Os registros dos pedidos foram preservados sem vínculo com a conta.'
+        : 'Sua conta foi encerrada e as sessões foram invalidadas no servidor, mas não foi possível limpar o armazenamento deste navegador.';
+    });
   });
 
   showView('login');

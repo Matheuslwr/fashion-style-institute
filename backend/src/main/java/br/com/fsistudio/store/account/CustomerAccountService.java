@@ -39,6 +39,8 @@ public class CustomerAccountService {
     private final JavaMailSender mailSender;
     private final String emailFrom;
     private final String emailHost;
+    private final boolean emailUsernameConfigured;
+    private final boolean emailPasswordConfigured;
 
     public CustomerAccountService(
         CustomerAccountRepository accounts,
@@ -50,7 +52,9 @@ public class CustomerAccountService {
         PasswordEncoder passwordEncoder,
         JavaMailSender mailSender,
         @Value("${app.mail.from:}") String emailFrom,
-        @Value("${spring.mail.host:}") String emailHost
+        @Value("${spring.mail.host:}") String emailHost,
+        @Value("${spring.mail.username:}") String emailUsername,
+        @Value("${spring.mail.password:}") String emailPassword
     ) {
         this.accounts = accounts;
         this.loginLimiter = loginLimiter;
@@ -62,6 +66,8 @@ public class CustomerAccountService {
         this.mailSender = mailSender;
         this.emailFrom = emailFrom;
         this.emailHost = emailHost;
+        this.emailUsernameConfigured = !emailUsername.isBlank();
+        this.emailPasswordConfigured = !emailPassword.isBlank();
     }
 
     @Transactional
@@ -75,7 +81,7 @@ public class CustomerAccountService {
         }
         if (email != null && !emailDeliveryConfigured()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "O envio de e-mail da loja ainda não está configurado. Escolha criar a conta com telefone ou tente mais tarde.");
+                "O envio de e-mail ainda não está completo no Render. Confira: " + missingMailSettings() + ".");
         }
         validatePasswordBytes(request.password());
         if ((email != null && accounts.existsByEmailIgnoreCase(email))
@@ -177,6 +183,16 @@ public class CustomerAccountService {
         sessions.deleteById(hashToken(rawToken));
     }
 
+    @Transactional
+    public void closeAccount(CustomerPrincipal principal, AccountRequests.CloseAccount request) {
+        CustomerAccount account = accounts.findById(principal.id())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sua sessão expirou. Entre novamente."));
+        if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A senha informada está incorreta.");
+        }
+        accounts.delete(account);
+    }
+
     @Transactional(readOnly = true)
     public CustomerPrincipal authenticate(String rawToken) {
         if (rawToken == null || rawToken.length() > 100) return null;
@@ -190,7 +206,7 @@ public class CustomerAccountService {
     private void issueEmailCode(CustomerAccount account, CustomerAccountEmailCode.Purpose purpose) {
         if (!emailDeliveryConfigured()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "O envio de e-mail da loja ainda não está configurado.");
+                "O envio de e-mail ainda não está completo no Render. Confira: " + missingMailSettings() + ".");
         }
         Instant now = Instant.now();
         CustomerAccountEmailCode code = emailCodes.findForUpdate(account.getId(), purpose).orElse(null);
@@ -245,7 +261,17 @@ public class CustomerAccountService {
     }
 
     private boolean emailDeliveryConfigured() {
-        return !emailHost.isBlank() && !emailFrom.isBlank();
+        return !emailHost.isBlank() && !emailFrom.isBlank()
+            && emailUsernameConfigured && emailPasswordConfigured;
+    }
+
+    private String missingMailSettings() {
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        if (emailHost.isBlank()) missing.add("MAIL_HOST");
+        if (!emailUsernameConfigured) missing.add("MAIL_USERNAME");
+        if (!emailPasswordConfigured) missing.add("MAIL_PASSWORD");
+        if (emailFrom.isBlank()) missing.add("MAIL_FROM");
+        return String.join(", ", missing);
     }
 
     private static String normalizeEmail(String email) {

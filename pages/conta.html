@@ -130,6 +130,17 @@
           <p class="account-feedback" data-account-orders-feedback role="status" aria-live="polite"></p>
           <div class="account-order-list" data-account-orders></div>
           <button class="account-logout" type="button" data-account-logout>Sair da conta</button>
+          <button class="account-logout account-close-trigger" type="button" data-account-close-trigger>Encerrar conta</button>
+          <form class="account-close-form" data-account-close-form hidden>
+            <p>Isso exclui seu perfil e encerra suas sessões. Os registros dos pedidos serão mantidos pela loja para consulta administrativa e ficarão sem vínculo com a conta.</p>
+            <label class="form-field">Confirme sua senha
+              <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+            </label>
+            <div class="account-close-actions">
+              <button class="account-logout" type="button" data-account-close-cancel>Cancelar</button>
+              <button class="account-logout account-close-confirm" type="submit">Confirmar encerramento</button>
+            </div>
+          </form>
         </section>
 
         <p class="account-feedback" data-account-feedback role="status" aria-live="polite"></p>

@@ -2,10 +2,13 @@ package br.com.fsistudio.store.account;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.Optional;
 
@@ -20,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import br.com.fsistudio.store.order.StoreOrderRepository;
 import br.com.fsistudio.store.order.StoreOrderService;
+import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerAccountServiceTest {
@@ -43,7 +47,7 @@ class CustomerAccountServiceTest {
     @BeforeEach
     void setUp() {
         service = new CustomerAccountService(accounts, loginLimiter, sessions, emailCodes, orders,
-            orderService, new BCryptPasswordEncoder(), mailSender, "", "");
+            orderService, new BCryptPasswordEncoder(), mailSender, "", "", "", "");
     }
 
     @Test
@@ -67,8 +71,8 @@ class CustomerAccountServiceTest {
             "Cliente", null, "(41) 99999-9999", "senha-com-dez"));
 
         assertNotNull(response.session());
-        org.junit.jupiter.api.Assertions.assertNull(response.session().account().email());
-        org.junit.jupiter.api.Assertions.assertEquals("+5541999999999", response.session().account().phone());
+        assertNull(response.session().account().email());
+        assertEquals("+5541999999999", response.session().account().phone());
         verify(mailSender, never()).send(any(org.springframework.mail.SimpleMailMessage.class));
     }
 
@@ -83,6 +87,48 @@ class CustomerAccountServiceTest {
             "(41) 99999-9999", "senha-com-dez"));
 
         assertNotNull(response.token());
-        org.junit.jupiter.api.Assertions.assertNull(response.account().email());
+        assertNull(response.account().email());
+    }
+
+    @Test
+    void emailRegistrationReportsWhichSmtpSettingsAreMissing() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> service.register(new AccountRequests.Register(
+                "Cliente", "cliente@example.com", null, "senha-com-dez")));
+
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getReason().contains("MAIL_HOST"));
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getReason().contains("MAIL_FROM"));
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getReason().contains("MAIL_USERNAME"));
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getReason().contains("MAIL_PASSWORD"));
+        verifyNoInteractions(accounts);
+    }
+
+    @Test
+    void closingAccountRequiresCorrectPasswordAndDeletesOnlyTheAccount() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        CustomerAccount account = new CustomerAccount("Cliente", null, "+5541999999999",
+            encoder.encode("senha-com-dez"));
+        UUID accountId = account.getId();
+        CustomerPrincipal principal = new CustomerPrincipal(accountId, null, account.getPhone(), account.getFullName());
+        when(accounts.findById(accountId)).thenReturn(Optional.of(account));
+
+        service.closeAccount(principal, new AccountRequests.CloseAccount("senha-com-dez"));
+
+        verify(accounts).delete(account);
+    }
+
+    @Test
+    void closingAccountRejectsAnIncorrectPassword() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        CustomerAccount account = new CustomerAccount("Cliente", null, "+5541999999999",
+            encoder.encode("senha-com-dez"));
+        UUID accountId = account.getId();
+        CustomerPrincipal principal = new CustomerPrincipal(accountId, null, account.getPhone(), account.getFullName());
+        when(accounts.findById(accountId)).thenReturn(Optional.of(account));
+
+        assertThrows(ResponseStatusException.class,
+            () -> service.closeAccount(principal, new AccountRequests.CloseAccount("senha-errada")));
+
+        verify(accounts, never()).delete(any(CustomerAccount.class));
     }
 }

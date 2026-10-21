@@ -70,9 +70,16 @@
           labels[order.paymentStatus] || 'Status desconhecido')
       );
       const created = new Date(order.createdAt);
+      const customerSummary = `${order.customerName} · ${order.customerEmail} · ${order.customerPhone}`;
+      const accountSummary = order.account
+        ? `Conta vinculada: ${order.account.fullName} · ${order.account.email || order.account.phone || 'contato indisponível'}`
+        : 'Pedido feito como visitante; nenhuma conta vinculada.';
+      const account = textElement('p', 'admin-order-account', accountSummary);
+      if (order.account) account.dataset.accountLinked = 'true';
       card.append(heading,
         textElement('p', 'admin-order-meta', `Recebido em ${Number.isNaN(created.valueOf()) ? 'data indisponível' : created.toLocaleString('pt-BR')}`),
-        textElement('p', '', `${order.customerName} · ${order.customerEmail} · ${order.customerPhone}`),
+        textElement('p', '', customerSummary),
+        account,
         textElement('p', '', `${order.address}, ${order.addressNumber}${order.complement ? `, ${order.complement}` : ''} · ${order.neighborhood} · ${order.city} - ${order.state} · CEP ${order.postalCode}`));
       const items = document.createElement('ul');
       items.className = 'admin-order-items';

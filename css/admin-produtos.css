@@ -61,6 +61,8 @@
 .admin-order-heading h3 { margin: 0; font-family: "Playfair Display", Georgia, serif; font-size: 1.35rem; font-weight: 600; }
 .admin-order-status { padding: 5px 9px; border: 1px solid var(--line); color: var(--wine); font-size: .7rem; font-weight: 700; }
 .admin-order-meta { color: var(--muted); font-size: .75rem !important; }
+.admin-order-account { padding: 10px 12px; color: var(--muted); background: #f8f2ec; border-left: 2px solid var(--line); font-size: .78rem !important; }
+.admin-order-account[data-account-linked="true"] { color: var(--wine); border-left-color: var(--wine); font-weight: 700; }
 .admin-order-items { padding-left: 20px; font-size: .8rem; }
 .admin-order-total { font-weight: 700; }
 @media (max-width: 850px) {

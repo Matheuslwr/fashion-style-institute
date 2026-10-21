@@ -13,6 +13,7 @@ public record AdminStoreOrderView(
     String customerName,
     String customerEmail,
     String customerPhone,
+    AccountCustomer account,
     String postalCode,
     String state,
     String city,
@@ -35,6 +36,10 @@ public record AdminStoreOrderView(
             order.getCustomerName(),
             order.getCustomerEmail(),
             order.getCustomerPhone(),
+            order.getCustomerAccount() == null ? null : new AccountCustomer(
+                order.getCustomerAccount().getFullName(),
+                order.getCustomerAccount().getEmail(),
+                order.getCustomerAccount().getPhone()),
             order.getPostalCode(),
             order.getState(),
             order.getCity(),
@@ -49,4 +54,6 @@ public record AdminStoreOrderView(
                 item.getColor(), item.getSize(), item.getQuantity(), item.getUnitPriceCents())).toList()
         );
     }
+
+    public record AccountCustomer(String fullName, String email, String phone) { }
 }
