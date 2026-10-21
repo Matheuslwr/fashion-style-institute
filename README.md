@@ -48,7 +48,7 @@ Site estático publicado na Vercel e API de catálogo em Java/Spring Boot com Po
 
    Em telas de até 800 px, a navegação inferior oferece Início, Loja, Carrinho, Pedidos e busca de produtos; ela se recolhe ao rolar para baixo e reaparece ao rolar para cima. O histórico em **Pedidos** mantém a consulta local dos pedidos de visitante e, quando a pessoa entra na conta, também mostra as compras vinculadas a ela.
 
-6. Em [Minha conta](pages/conta.html), clientes podem criar conta, confirmar e-mail, entrar com e-mail ou telefone e senha, recuperar a senha e consultar compras em outros dispositivos. As contas usam senha com hash BCrypt e sessões revogáveis. Para confirmar e-mail e recuperar senha, configure um SMTP que você já tenha ou um provedor com faixa gratuita: `MAIL_HOST`, `MAIL_PORT` (normalmente `587`), `MAIL_USERNAME`, `MAIL_PASSWORD` e `MAIL_FROM`. Não há envio de SMS: isso evita custo por mensagem. O telefone é um identificador alternativo da conta, protegido pela mesma senha; a posse do número não é verificada por SMS. A confirmação associa à conta pedidos anteriores com o mesmo e-mail; compras novas feitas com sessão iniciada ficam vinculadas automaticamente. A migração `V6__create_customer_accounts.sql` é aplicada pelo Flyway quando a API inicia.
+6. Em [Minha conta](pages/conta.html), clientes podem criar conta escolhendo um e-mail ou um telefone, com senha de pelo menos 10 caracteres. A conta por e-mail precisa ser confirmada; para isso e para recuperar a senha, configure um SMTP que você já tenha ou um provedor com faixa gratuita: `MAIL_HOST`, `MAIL_PORT` (normalmente `587`), `MAIL_USERNAME`, `MAIL_PASSWORD` e `MAIL_FROM`. A conta criada só com telefone fica ativa imediatamente e permite login com o número e a senha, mas não há SMS para confirmar a posse do número ou recuperar essa senha; a pessoa deve guardá-la com cuidado. As contas usam senha com hash BCrypt e sessões revogáveis. A confirmação de e-mail associa à conta pedidos anteriores com o mesmo e-mail; compras novas feitas com sessão iniciada ficam vinculadas automaticamente. As migrações `V6__create_customer_accounts.sql` e `V7__make_customer_contact_optional.sql` são aplicadas pelo Flyway quando a API inicia.
 
 Para interromper o banco local:
 
@@ -73,7 +73,7 @@ Os dados permanecem no volume nomeado. Para apagá-los, remova esse volume expli
 | `POST` | `/api/admin/images` | Administrador | Envia imagem multipart, até 8 MB |
 | `POST` | `/api/orders` | Público | Cria pedido e QR Pix com valor e referência |
 | `GET` | `/api/orders/{id}` | Público | Consulta pagamento e dados não sensíveis do pedido |
-| `POST` | `/api/account/register` | Público | Cria conta e envia código de confirmação por e-mail |
+| `POST` | `/api/account/register` | Público | Cria conta com e-mail (envia confirmação) ou telefone (inicia sessão) |
 | `POST` | `/api/account/verify-email` | Público | Confirma e-mail e inicia sessão |
 | `POST` | `/api/account/verify-email/resend` | Público | Solicita novo código de confirmação |
 | `POST` | `/api/account/login` | Público | Inicia sessão por e-mail ou telefone e senha |

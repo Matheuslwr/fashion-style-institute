@@ -28,9 +28,8 @@ public class CustomerAccountController {
     }
 
     @PostMapping("/register")
-    public Map<String, String> register(@Valid @RequestBody AccountRequests.Register request) {
-        accounts.register(request);
-        return Map.of("message", "Enviamos um código de confirmação para seu e-mail.");
+    public AccountRegistrationResponse register(@Valid @RequestBody AccountRequests.Register request) {
+        return accounts.register(request);
     }
 
     @PostMapping("/verify-email")

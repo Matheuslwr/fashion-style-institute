@@ -1,7 +1,6 @@
 package br.com.fsistudio.store.account;
 
 import java.time.Instant;
-import java.util.Locale;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -18,10 +17,10 @@ public class CustomerAccount {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    @Column(nullable = false, unique = true, length = 120)
+    @Column(unique = true, length = 120)
     private String email;
 
-    @Column(nullable = false, unique = true, length = 24)
+    @Column(unique = true, length = 24)
     private String phone;
 
     @Column(name = "password_hash", nullable = false, length = 100)
@@ -38,7 +37,7 @@ public class CustomerAccount {
     public CustomerAccount(String fullName, String email, String phone, String passwordHash) {
         this.id = UUID.randomUUID();
         this.fullName = fullName.trim();
-        this.email = email.trim().toLowerCase(Locale.ROOT);
+        this.email = email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
         this.phone = phone;
         this.passwordHash = passwordHash;
     }
@@ -49,6 +48,10 @@ public class CustomerAccount {
 
     public void updatePassword(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public boolean canAuthenticate() {
+        return email == null || emailVerifiedAt != null;
     }
 
     public UUID getId() { return id; }

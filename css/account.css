@@ -35,6 +35,13 @@
 .account-intro strong { color: var(--wine); overflow-wrap: anywhere; }
 .account-form { display: grid; gap: 2px; }
 .account-form .form-field { margin-bottom: 12px; }
+.account-form .form-field[hidden] { display: none; }
+.account-contact-choice { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 15px; padding: 0; border: 0; }
+.account-contact-choice legend { width: 100%; margin-bottom: 9px; color: var(--ink); font-size: .76rem; font-weight: 700; }
+.account-contact-choice label { display: inline-flex; align-items: center; gap: 8px; min-width: 112px; padding: 11px 14px; color: var(--wine); background: #f8f2ec; border: 1px solid var(--line); cursor: pointer; font-size: .78rem; font-weight: 700; }
+.account-contact-choice input { accent-color: var(--wine); }
+.account-contact-choice label:has(input:checked) { background: #f2e4d8; border-color: var(--wine); }
+.account-contact-note { margin: 14px 0 0; font-size: .72rem; }
 .account-field-hint { color: var(--muted); font-size: .69rem; font-weight: 400; }
 .account-submit { width: 100%; justify-content: space-between; margin-top: 10px; border: 0; cursor: pointer; font: inherit; font-size: .76rem; }
 .account-submit:disabled { cursor: wait; opacity: .65; }

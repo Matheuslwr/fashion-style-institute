@@ -53,17 +53,23 @@
             <label class="form-field">Nome completo
               <input name="fullName" autocomplete="name" required maxlength="100">
             </label>
-            <label class="form-field">E-mail
+            <fieldset class="account-contact-choice">
+              <legend>Como deseja criar sua conta?</legend>
+              <label><input type="radio" name="contactType" value="email" checked required> E-mail</label>
+              <label><input type="radio" name="contactType" value="phone" required> Telefone</label>
+            </fieldset>
+            <label class="form-field" data-contact-field="email">E-mail
               <input name="email" type="email" autocomplete="email" required maxlength="120">
             </label>
-            <label class="form-field">Telefone com DDD
-              <input name="phone" type="tel" autocomplete="tel" inputmode="tel" required maxlength="24" placeholder="(41) 99999-9999">
+            <label class="form-field" data-contact-field="phone" hidden>Telefone com DDD
+              <input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="24" placeholder="(41) 99999-9999" disabled>
             </label>
-            <label class="form-field">Senha <span class="account-field-hint">Pelo menos 12 caracteres</span>
-              <input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="72">
+            <label class="form-field">Senha <span class="account-field-hint">Pelo menos 10 caracteres</span>
+              <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="72">
             </label>
             <button class="store-button account-submit" type="submit">Criar conta <span aria-hidden="true">↗</span></button>
           </form>
+          <p class="account-intro account-contact-note">Contas criadas com telefone ficam ativas imediatamente. Sem SMS, não é possível confirmar a posse do número nem recuperar a senha por telefone; guarde sua senha com cuidado.</p>
           <p class="account-switch">Já tem conta? <button class="account-text-button" type="button" data-show-login>Entrar</button></p>
         </section>
 
@@ -105,8 +111,8 @@
             <label class="form-field">Código de recuperação
               <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
             </label>
-            <label class="form-field">Nova senha <span class="account-field-hint">Pelo menos 12 caracteres</span>
-              <input name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+            <label class="form-field">Nova senha <span class="account-field-hint">Pelo menos 10 caracteres</span>
+              <input name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
             </label>
             <button class="store-button account-submit" type="submit">Salvar nova senha <span aria-hidden="true">↗</span></button>
           </form>

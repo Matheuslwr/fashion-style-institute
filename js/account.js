@@ -9,6 +9,7 @@
   const pendingEmail = root.querySelector('[data-pending-email]');
   const orderFeedback = root.querySelector('[data-account-orders-feedback]');
   const orderList = root.querySelector('[data-account-orders]');
+  const registerForm = root.querySelector('[data-register-form]');
   let verificationEmail = '';
 
   function showView(name) {
@@ -145,12 +146,28 @@
   root.querySelector('[data-register-form]').addEventListener('submit', event => {
     event.preventDefault();
     void submit(event.currentTarget, async data => {
-      await request('/api/account/register', data);
+      const result = await request('/api/account/register', data);
+      if (result.session) {
+        await enterAccount(result.session);
+        feedback.textContent = result.message;
+        return;
+      }
       verificationEmail = data.email.trim();
       pendingEmail.textContent = verificationEmail;
-      root.querySelector('[data-verify-form] [name="email"]')?.remove();
       showView('verify');
-      feedback.textContent = 'Enviamos um código para confirmar seu e-mail.';
+      feedback.textContent = result.message;
+    });
+  });
+
+  registerForm.querySelectorAll('[name="contactType"]').forEach(choice => {
+    choice.addEventListener('change', () => {
+      registerForm.querySelectorAll('[data-contact-field]').forEach(field => {
+        const active = field.dataset.contactField === choice.value;
+        field.hidden = !active;
+        const input = field.querySelector('input');
+        input.disabled = !active;
+        input.required = active;
+      });
     });
   });
 

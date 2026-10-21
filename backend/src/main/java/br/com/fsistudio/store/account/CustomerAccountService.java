@@ -65,21 +65,33 @@ public class CustomerAccountService {
     }
 
     @Transactional
-    public void register(AccountRequests.Register request) {
-        if (!emailDeliveryConfigured()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "O envio de e-mail da loja ainda não está configurado.");
+    public AccountRegistrationResponse register(AccountRequests.Register request) {
+        String email = request.email() == null || request.email().isBlank()
+            ? null : normalizeEmail(request.email());
+        String phone = request.phone() == null || request.phone().isBlank()
+            ? null : normalizePhone(request.phone());
+        if ((email == null) == (phone == null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe somente um e-mail ou um telefone.");
         }
-        String email = normalizeEmail(request.email());
-        String phone = normalizePhone(request.phone());
+        if (email != null && !emailDeliveryConfigured()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "O envio de e-mail da loja ainda não está configurado. Escolha criar a conta com telefone ou tente mais tarde.");
+        }
         validatePasswordBytes(request.password());
-        if (accounts.existsByEmailIgnoreCase(email) || accounts.existsByPhone(phone)) {
+        if ((email != null && accounts.existsByEmailIgnoreCase(email))
+            || (phone != null && accounts.existsByPhone(phone))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Não foi possível criar a conta com esses dados. Entre ou use outro e-mail e telefone.");
+                "Não foi possível criar a conta com esse identificador. Entre ou use outro e-mail/telefone.");
         }
         CustomerAccount account = accounts.saveAndFlush(new CustomerAccount(
             request.fullName(), email, phone, passwordEncoder.encode(request.password())));
-        issueEmailCode(account, CustomerAccountEmailCode.Purpose.VERIFY_EMAIL);
+        if (email != null) {
+            issueEmailCode(account, CustomerAccountEmailCode.Purpose.VERIFY_EMAIL);
+            return new AccountRegistrationResponse(
+                "Enviamos um código de confirmação para seu e-mail.", null);
+        }
+        return new AccountRegistrationResponse("Conta criada com telefone. Sua sessão já está iniciada.",
+            createSession(account));
     }
 
     @Transactional(noRollbackFor = ResponseStatusException.class)
@@ -115,7 +127,7 @@ public class CustomerAccountService {
         var account = submittedIdentifier.contains("@")
             ? accounts.findByEmailIgnoreCase(identifier)
             : accounts.findByPhone(identifier);
-        CustomerAccount customer = account.filter(value -> value.getEmailVerifiedAt() != null)
+        CustomerAccount customer = account.filter(CustomerAccount::canAuthenticate)
             .filter(value -> passwordEncoder.matches(request.password(), value.getPasswordHash()))
             .orElse(null);
         if (customer == null) {
@@ -170,7 +182,7 @@ public class CustomerAccountService {
         if (rawToken == null || rawToken.length() > 100) return null;
         return sessions.findByTokenHashAndExpiresAtAfter(hashToken(rawToken), Instant.now())
             .map(CustomerAccountSession::getAccount)
-            .filter(account -> account.getEmailVerifiedAt() != null)
+            .filter(CustomerAccount::canAuthenticate)
             .map(account -> new CustomerPrincipal(account.getId(), account.getEmail(), account.getPhone(), account.getFullName()))
             .orElse(null);
     }
