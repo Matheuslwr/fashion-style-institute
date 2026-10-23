@@ -9,6 +9,8 @@ import java.util.Base64;
 import java.util.Locale;
 import java.util.HexFormat;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -25,6 +27,7 @@ import br.com.fsistudio.store.order.StoreOrderService;
 
 @Service
 public class CustomerAccountService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CustomerAccountService.class);
     private static final Duration EMAIL_CODE_LIFETIME = Duration.ofMinutes(10);
     private static final Duration EMAIL_CODE_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration SESSION_LIFETIME = Duration.ofDays(30);
@@ -235,8 +238,10 @@ public class CustomerAccountService {
         try {
             mailSender.send(message);
         } catch (MailException exception) {
+            Throwable cause = exception.getMostSpecificCause();
+            LOGGER.warn("SMTP delivery failed for {} code ({})", purpose, cause.getClass().getSimpleName());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "Não foi possível enviar o e-mail agora. Confira a configuração de e-mail da loja e tente novamente.", exception);
+                "Não foi possível enviar o e-mail agora. Confira o host, a porta, o usuário SMTP, a senha de app e se o remetente está autorizado.", exception);
         }
     }
 

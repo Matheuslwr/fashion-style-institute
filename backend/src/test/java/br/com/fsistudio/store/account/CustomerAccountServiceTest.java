@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.MailSendException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -130,5 +131,25 @@ class CustomerAccountServiceTest {
             () -> service.closeAccount(principal, new AccountRequests.CloseAccount("senha-errada")));
 
         verify(accounts, never()).delete(any(CustomerAccount.class));
+    }
+
+    @Test
+    void emailRegistrationReturnsSafeGuidanceWhenSmtpRejectsDelivery() {
+        CustomerAccountService configuredService = new CustomerAccountService(
+            accounts, loginLimiter, sessions, emailCodes, orders, orderService,
+            new BCryptPasswordEncoder(), mailSender, "loja@example.com", "smtp.gmail.com",
+            "loja@example.com", "test-only-app-password");
+        when(accounts.saveAndFlush(any(CustomerAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(emailCodes.findForUpdate(any(), any())).thenReturn(Optional.empty());
+        org.mockito.Mockito.doThrow(new MailSendException("test SMTP failure"))
+            .when(mailSender).send(any(org.springframework.mail.SimpleMailMessage.class));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> configuredService.register(new AccountRequests.Register(
+                "Cliente", "cliente@example.com", null, "senha-com-dez")));
+
+        assertEquals(503, exception.getStatusCode().value());
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getReason().contains("senha de app"));
+        org.junit.jupiter.api.Assertions.assertFalse(exception.getReason().contains("test-only-app-password"));
     }
 }
