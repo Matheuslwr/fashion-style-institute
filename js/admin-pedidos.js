@@ -6,6 +6,9 @@
   const loginFeedback = document.querySelector('[data-login-feedback]');
   const adminFeedback = document.querySelector('[data-admin-feedback]');
   const orderList = document.querySelector('[data-admin-orders]');
+  const accountSearchForm = document.querySelector('[data-account-search-form]');
+  const accountList = document.querySelector('[data-admin-accounts]');
+  const temporaryPasswordResult = document.querySelector('[data-temporary-password-result]');
   let authorization = '';
 
   async function request(path, options = {}) {
@@ -45,6 +48,99 @@
     if (className) element.className = className;
     element.textContent = text;
     return element;
+  }
+
+  function renderAdminAccounts(accounts) {
+    if (!accounts.length) {
+      accountList.replaceChildren(textElement('p', 'admin-hint', 'Nenhuma conta encontrada para essa busca.'));
+      return;
+    }
+
+    accountList.replaceChildren(...accounts.map(account => {
+      const row = document.createElement('article');
+      row.className = 'admin-account-row';
+      const identity = document.createElement('div');
+      identity.append(
+        textElement('strong', '', account.fullName),
+        textElement('small', '', [account.email, account.phone].filter(Boolean).join(' · ') || 'Sem contato cadastrado')
+      );
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.className = 'admin-secondary-button';
+      reset.textContent = 'Gerar senha temporária';
+      reset.addEventListener('click', () => issueTemporaryPassword(account, reset));
+      row.append(identity, reset);
+      return row;
+    }));
+  }
+
+  function showTemporaryPassword(account, result) {
+    const expiresAt = new Date(result.expiresAt);
+    const message = textElement('p', '',
+      `Senha temporária de ${account.fullName}. Ela expira em ${Number.isNaN(expiresAt.valueOf()) ? '24 horas' : expiresAt.toLocaleString('pt-BR')}. Mostre ou entregue diretamente ao cliente; não a envie em canais públicos.`);
+    const password = textElement('code', 'admin-temp-password', result.temporaryPassword);
+    const actions = document.createElement('div');
+    actions.className = 'admin-temp-password-actions';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'admin-secondary-button';
+    copy.textContent = 'Copiar senha';
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(result.temporaryPassword);
+        adminFeedback.textContent = 'Senha copiada. Entregue-a diretamente ao cliente.';
+      } catch {
+        adminFeedback.textContent = 'Não foi possível copiar automaticamente. Selecione a senha exibida e copie manualmente.';
+      }
+    });
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.className = 'admin-secondary-button';
+    hide.textContent = 'Ocultar senha';
+    hide.addEventListener('click', () => {
+      temporaryPasswordResult.replaceChildren();
+      temporaryPasswordResult.hidden = true;
+    });
+    actions.append(copy, hide);
+    temporaryPasswordResult.replaceChildren(message, password, actions);
+    temporaryPasswordResult.hidden = false;
+  }
+
+  async function issueTemporaryPassword(account, button) {
+    const contact = account.email || account.phone || 'sem contato';
+    if (!window.confirm(
+      `Emitir uma nova senha temporária para ${account.fullName} (${contact})? Isso encerra as sessões atuais da conta. Confirme a identidade do cliente antes de entregar a senha.`
+    )) return;
+    button.disabled = true;
+    temporaryPasswordResult.replaceChildren();
+    temporaryPasswordResult.hidden = true;
+    adminFeedback.textContent = 'Gerando senha temporária...';
+    try {
+      const result = await request(
+        `/api/admin/accounts/${encodeURIComponent(account.id)}/temporary-password`,
+        { method: 'POST' }
+      );
+      showTemporaryPassword(account, result);
+      button.textContent = 'Senha emitida';
+      adminFeedback.textContent = 'Senha temporária emitida. Ela será exibida somente nesta tela.';
+    } catch (error) {
+      button.disabled = false;
+      adminFeedback.textContent = error.message;
+    }
+  }
+
+  async function searchAccounts(query) {
+    accountList.replaceChildren();
+    temporaryPasswordResult.replaceChildren();
+    temporaryPasswordResult.hidden = true;
+    adminFeedback.textContent = 'Buscando contas...';
+    try {
+      const accounts = await request(`/api/admin/accounts?query=${encodeURIComponent(query)}`);
+      renderAdminAccounts(accounts);
+      adminFeedback.textContent = `${accounts.length} conta(s) encontrada(s).`;
+    } catch (error) {
+      adminFeedback.textContent = error.message;
+    }
   }
 
   function renderOrders(orders) {
@@ -152,9 +248,17 @@
     catch (error) { adminFeedback.textContent = error.message; }
   });
 
+  accountSearchForm.addEventListener('submit', event => {
+    event.preventDefault();
+    void searchAccounts(accountSearchForm.elements.query.value.trim());
+  });
+
   document.querySelector('[data-logout]').addEventListener('click', () => {
     authorization = '';
     orderList.replaceChildren();
+    accountList.replaceChildren();
+    temporaryPasswordResult.replaceChildren();
+    temporaryPasswordResult.hidden = true;
     workspace.hidden = true;
     login.hidden = false;
   });

@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.HexFormat;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +16,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -31,6 +36,10 @@ public class CustomerAccountService {
     private static final Duration EMAIL_CODE_LIFETIME = Duration.ofMinutes(10);
     private static final Duration EMAIL_CODE_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration SESSION_LIFETIME = Duration.ofDays(30);
+    private static final Duration TEMPORARY_PASSWORD_LIFETIME = Duration.ofHours(24);
+    private static final Duration PASSWORD_RESET_SESSION_LIFETIME = Duration.ofMinutes(10);
+    private static final String TEMPORARY_PASSWORD_CHARACTERS =
+        "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
     private final CustomerAccountRepository accounts;
     private final CustomerLoginAttemptLimiter loginLimiter;
@@ -40,7 +49,9 @@ public class CustomerAccountService {
     private final StoreOrderService orderService;
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
+    private final RestClient brevoClient;
     private final String emailFrom;
+    private final String brevoApiKey;
     private final String emailHost;
     private final boolean emailUsernameConfigured;
     private final boolean emailPasswordConfigured;
@@ -54,7 +65,9 @@ public class CustomerAccountService {
         StoreOrderService orderService,
         PasswordEncoder passwordEncoder,
         JavaMailSender mailSender,
+        RestClient.Builder restClientBuilder,
         @Value("${app.mail.from:}") String emailFrom,
+        @Value("${app.mail.brevo-api-key:}") String brevoApiKey,
         @Value("${spring.mail.host:}") String emailHost,
         @Value("${spring.mail.username:}") String emailUsername,
         @Value("${spring.mail.password:}") String emailPassword
@@ -67,7 +80,9 @@ public class CustomerAccountService {
         this.orderService = orderService;
         this.passwordEncoder = passwordEncoder;
         this.mailSender = mailSender;
+        this.brevoClient = restClientBuilder.baseUrl("https://api.brevo.com/v3").build();
         this.emailFrom = emailFrom;
+        this.brevoApiKey = brevoApiKey;
         this.emailHost = emailHost;
         this.emailUsernameConfigured = !emailUsername.isBlank();
         this.emailPasswordConfigured = !emailPassword.isBlank();
@@ -137,6 +152,7 @@ public class CustomerAccountService {
             ? accounts.findByEmailIgnoreCase(identifier)
             : accounts.findByPhone(identifier);
         CustomerAccount customer = account.filter(CustomerAccount::canAuthenticate)
+            .filter(value -> !value.isTemporaryPasswordExpired(Instant.now()))
             .filter(value -> passwordEncoder.matches(request.password(), value.getPasswordHash()))
             .orElse(null);
         if (customer == null) {
@@ -145,6 +161,38 @@ public class CustomerAccountService {
         }
         loginLimiter.succeeded(identifier);
         return createSession(customer);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<AdminCustomerAccountView> searchAdminAccounts(String query) {
+        String term = query.trim();
+        String phoneTerm = term.matches("[+0-9() .-]+")
+            ? term.replaceAll("\\D", "")
+            : term;
+        if (phoneTerm.isBlank()) phoneTerm = term;
+        return accounts
+            .findTop20ByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingOrderByCreatedAtDesc(
+                term, term, phoneTerm)
+            .stream()
+            .map(AdminCustomerAccountView::from)
+            .toList();
+    }
+
+    @Transactional
+    public AdminTemporaryPasswordResponse issueTemporaryPassword(UUID accountId) {
+        CustomerAccount account = accounts.findByIdForUpdate(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta não encontrada."));
+        if (!account.canAuthenticate()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Esta conta ainda precisa confirmar o e-mail antes de entrar.");
+        }
+        String temporaryPassword = generateTemporaryPassword();
+        Instant expiresAt = Instant.now().plus(TEMPORARY_PASSWORD_LIFETIME);
+        account.setTemporaryPassword(passwordEncoder.encode(temporaryPassword), expiresAt);
+        sessions.deleteByAccountId(accountId);
+        emailCodes.findForUpdate(accountId, CustomerAccountEmailCode.Purpose.RESET_PASSWORD)
+            .ifPresent(emailCodes::delete);
+        return new AdminTemporaryPasswordResponse(temporaryPassword, expiresAt);
     }
 
     @Transactional
@@ -168,6 +216,27 @@ public class CustomerAccountService {
         account.updatePassword(passwordEncoder.encode(request.newPassword()));
         sessions.deleteByAccountId(account.getId());
         emailCodes.delete(code);
+    }
+
+    @Transactional
+    public void completeTemporaryPasswordReset(
+        CustomerPrincipal principal,
+        AccountRequests.CompleteTemporaryPasswordReset request
+    ) {
+        validatePasswordBytes(request.newPassword());
+        CustomerAccount account = accounts.findByIdForUpdate(principal.id())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                "Sua sessão expirou. Entre novamente."));
+        if (!account.isPasswordResetRequired()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Esta conta não precisa trocar a senha temporária.");
+        }
+        if (account.isTemporaryPasswordExpired(Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.GONE,
+                "A senha temporária expirou. Peça ao atendimento para emitir outra.");
+        }
+        account.updatePassword(passwordEncoder.encode(request.newPassword()));
+        sessions.deleteByAccountId(account.getId());
     }
 
     @Transactional(readOnly = true)
@@ -202,14 +271,16 @@ public class CustomerAccountService {
         return sessions.findByTokenHashAndExpiresAtAfter(hashToken(rawToken), Instant.now())
             .map(CustomerAccountSession::getAccount)
             .filter(CustomerAccount::canAuthenticate)
-            .map(account -> new CustomerPrincipal(account.getId(), account.getEmail(), account.getPhone(), account.getFullName()))
+            .map(account -> new CustomerPrincipal(account.getId(), account.getEmail(), account.getPhone(),
+                account.getFullName(), account.isPasswordResetRequired()))
             .orElse(null);
     }
 
     private void issueEmailCode(CustomerAccount account, CustomerAccountEmailCode.Purpose purpose) {
         if (!emailDeliveryConfigured()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "O envio de e-mail ainda não está completo no Render. Confira: " + missingMailSettings() + ".");
+                "O envio de e-mail ainda não está configurado. Configure BREVO_API_KEY e MAIL_FROM para usar a API HTTPS, ou confira: "
+                    + missingMailSettings() + ".");
         }
         Instant now = Instant.now();
         CustomerAccountEmailCode code = emailCodes.findForUpdate(account.getId(), purpose).orElse(null);
@@ -235,13 +306,43 @@ public class CustomerAccountService {
             : "Código para redefinir sua senha · FSI Studio");
         message.setText("Seu código FSI Studio é " + rawCode + ". Ele expira em 10 minutos. "
             + "Se você não solicitou este código, ignore esta mensagem.");
+        if (!brevoApiKey.isBlank()) {
+            sendWithBrevo(account.getEmail(), message.getSubject(), message.getText(), purpose);
+            return;
+        }
         try {
             mailSender.send(message);
         } catch (MailException exception) {
             Throwable cause = exception.getMostSpecificCause();
             LOGGER.warn("SMTP delivery failed for {} code ({})", purpose, cause.getClass().getSimpleName());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "Não foi possível enviar o e-mail agora. Confira o host, a porta, o usuário SMTP, a senha de app e se o remetente está autorizado.", exception);
+                "O envio por SMTP falhou. No Render Free, configure BREVO_API_KEY e MAIL_FROM para enviar pela API HTTPS.", exception);
+        }
+    }
+
+    private void sendWithBrevo(String recipient, String subject, String text, CustomerAccountEmailCode.Purpose purpose) {
+        java.util.Map<String, Object> payload = java.util.Map.of(
+            "sender", java.util.Map.of("name", "FSI Studio", "email", emailFrom),
+            "to", java.util.List.of(java.util.Map.of("email", recipient)),
+            "subject", subject,
+            "textContent", text
+        );
+        try {
+            brevoClient.post()
+                .uri("/smtp/email")
+                .header("api-key", brevoApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(payload)
+                .retrieve()
+                .toBodilessEntity();
+        } catch (RestClientResponseException exception) {
+            LOGGER.warn("Brevo delivery failed for {} code (HTTP {})", purpose, exception.getStatusCode().value());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "O provedor de e-mail recusou o envio. Confira BREVO_API_KEY e se MAIL_FROM está autorizado como remetente no Brevo.");
+        } catch (RestClientException exception) {
+            LOGGER.warn("Brevo delivery failed for {} code ({})", purpose, exception.getClass().getSimpleName());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "Não foi possível conectar ao serviço de e-mail pela API HTTPS. Tente novamente mais tarde.", exception);
         }
     }
 
@@ -260,22 +361,33 @@ public class CustomerAccountService {
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        Instant expiresAt = Instant.now().plus(SESSION_LIFETIME);
+        Instant expiresAt = Instant.now().plus(account.isPasswordResetRequired()
+            ? PASSWORD_RESET_SESSION_LIFETIME : SESSION_LIFETIME);
         sessions.save(new CustomerAccountSession(hashToken(rawToken), account, expiresAt));
         return new AccountAuthResponse(rawToken, expiresAt, CustomerAccountView.from(account));
     }
 
+    private static String generateTemporaryPassword() {
+        StringBuilder password = new StringBuilder(18);
+        for (int index = 0; index < 18; index++) {
+            password.append(TEMPORARY_PASSWORD_CHARACTERS.charAt(
+                RANDOM.nextInt(TEMPORARY_PASSWORD_CHARACTERS.length())));
+        }
+        return password.toString();
+    }
+
     private boolean emailDeliveryConfigured() {
-        return !emailHost.isBlank() && !emailFrom.isBlank()
+        boolean smtpConfigured = !emailHost.isBlank() && !emailFrom.isBlank()
             && emailUsernameConfigured && emailPasswordConfigured;
+        return !emailFrom.isBlank() && (!brevoApiKey.isBlank() || smtpConfigured);
     }
 
     private String missingMailSettings() {
         java.util.List<String> missing = new java.util.ArrayList<>();
-        if (emailHost.isBlank()) missing.add("MAIL_HOST");
-        if (!emailUsernameConfigured) missing.add("MAIL_USERNAME");
-        if (!emailPasswordConfigured) missing.add("MAIL_PASSWORD");
         if (emailFrom.isBlank()) missing.add("MAIL_FROM");
+        if (brevoApiKey.isBlank()) {
+            missing.add("BREVO_API_KEY (ou MAIL_HOST, MAIL_USERNAME e MAIL_PASSWORD para SMTP)");
+        }
         return String.join(", ", missing);
     }
 

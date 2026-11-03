@@ -46,6 +46,12 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.POST, "/api/account/register", "/api/account/verify-email",
                     "/api/account/verify-email/resend",
                     "/api/account/login", "/api/account/forgot-password", "/api/account/reset-password").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/account/complete-temporary-password-reset")
+                    .hasAnyRole("CUSTOMER", "PASSWORD_RESET")
+                .requestMatchers(HttpMethod.GET, "/api/account/me")
+                    .hasAnyRole("CUSTOMER", "PASSWORD_RESET")
+                .requestMatchers(HttpMethod.POST, "/api/account/logout")
+                    .hasAnyRole("CUSTOMER", "PASSWORD_RESET")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/account/**").hasRole("CUSTOMER")
                 .anyRequest().permitAll())

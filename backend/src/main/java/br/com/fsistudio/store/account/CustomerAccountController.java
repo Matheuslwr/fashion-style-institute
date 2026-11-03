@@ -63,6 +63,15 @@ public class CustomerAccountController {
         return Map.of("message", "Senha atualizada. Entre com sua nova senha.");
     }
 
+    @PostMapping("/complete-temporary-password-reset")
+    @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.NO_CONTENT)
+    public void completeTemporaryPasswordReset(
+        @AuthenticationPrincipal CustomerPrincipal principal,
+        @Valid @RequestBody AccountRequests.CompleteTemporaryPasswordReset request
+    ) {
+        accounts.completeTemporaryPasswordReset(requirePrincipal(principal), request);
+    }
+
     @GetMapping("/me")
     public CustomerAccountView profile(@AuthenticationPrincipal CustomerPrincipal principal) {
         return accounts.getProfile(requirePrincipal(principal));

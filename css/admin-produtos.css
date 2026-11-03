@@ -53,6 +53,21 @@
 .admin-variant-row button { width: 34px; height: 34px; color: var(--wine); background: transparent; border: 1px solid var(--line); cursor: pointer; }
 .admin-form-actions { justify-content: flex-end; margin-top: 4px; }
 .admin-orders-workspace { max-width: 1050px; margin-inline: auto; }
+.admin-account-panel { margin: 24px 0; padding: 20px; background: var(--cream); border: 1px solid var(--line); }
+.admin-account-panel h2 { margin: 0; font-family: "Playfair Display", Georgia, serif; font-size: 1.45rem; font-weight: 600; }
+.admin-account-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.admin-account-search .admin-field { margin: 0; }
+.admin-account-list { display: grid; margin-top: 12px; }
+.admin-account-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.admin-account-row strong,.admin-account-row small { display: block; overflow-wrap: anywhere; }
+.admin-account-row strong { font-size: .86rem; }
+.admin-account-row small { margin-top: 4px; color: var(--muted); font-size: .72rem; }
+.admin-account-row .admin-secondary-button { flex: 0 0 auto; }
+.admin-temp-password-result { display: grid; gap: 12px; margin-top: 14px; padding: 15px; background: #f7ece8; border-left: 3px solid var(--wine); }
+.admin-temp-password-result[hidden] { display: none; }
+.admin-temp-password-result p { margin: 0; color: var(--wine); font-size: .78rem; line-height: 1.5; }
+.admin-temp-password { width: fit-content; padding: 9px 12px; color: var(--ink); background: var(--cream); border: 1px solid var(--line); font-size: 1rem; letter-spacing: .08em; user-select: all; }
+.admin-temp-password-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .admin-orders-warning { margin: 16px 0; padding: 13px 15px; color: var(--wine); background: #f7ece8; border-left: 3px solid var(--wine); font-size: .82rem; line-height: 1.5; }
 .admin-orders-list { display: grid; gap: 16px; margin-top: 18px; }
 .admin-order-card { padding: 20px; background: var(--cream); border: 1px solid var(--line); line-height: 1.5; overflow-wrap: anywhere; }
@@ -74,6 +89,9 @@
   .admin-header-links { grid-column: 2; grid-row: 1; flex-direction: column; gap: 5px; text-align: right; }
   .admin-login { margin: 42px auto; padding: 22px; }
   .admin-workspace { padding-top: 32px; }
+  .admin-account-panel { padding: 15px; }
+  .admin-account-row { align-items: flex-start; flex-direction: column; }
+  .admin-account-search { grid-template-columns: 1fr; }
   .admin-toolbar { align-items: flex-start; }
   .admin-toolbar-actions { flex-direction: column-reverse; align-items: stretch; }
   .admin-products,.admin-editor { padding: 16px; }

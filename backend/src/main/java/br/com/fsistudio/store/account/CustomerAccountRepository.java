@@ -1,6 +1,7 @@
 package br.com.fsistudio.store.account;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,6 +16,9 @@ public interface CustomerAccountRepository extends JpaRepository<CustomerAccount
     Optional<CustomerAccount> findByPhone(String phone);
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByPhone(String phone);
+    List<CustomerAccount> findTop20ByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingOrderByCreatedAtDesc(
+        String fullName, String email, String phone
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select account from CustomerAccount account where account.id = :id")

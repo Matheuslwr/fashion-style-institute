@@ -37,7 +37,10 @@
               <input name="identifier" autocomplete="username" required maxlength="120" placeholder="voce@email.com ou (41) 99999-9999">
             </label>
             <label class="form-field">Senha
-              <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+              <span class="password-input-wrap">
+                <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" title="Mostrar senha">👁️</button>
+              </span>
             </label>
             <button class="store-button account-submit" type="submit">Entrar <span aria-hidden="true">↗</span></button>
           </form>
@@ -65,11 +68,15 @@
               <input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="24" placeholder="(41) 99999-9999" disabled>
             </label>
             <label class="form-field">Senha <span class="account-field-hint">Pelo menos 10 caracteres</span>
-              <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="72">
+              <span class="password-input-wrap">
+                <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="72">
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" title="Mostrar senha">👁️</button>
+              </span>
             </label>
             <button class="store-button account-submit" type="submit">Criar conta <span aria-hidden="true">↗</span></button>
           </form>
           <p class="account-intro account-contact-note">Contas criadas com telefone ficam ativas imediatamente. Sem SMS, não é possível confirmar a posse do número nem recuperar a senha por telefone; guarde sua senha com cuidado.</p>
+          <p class="account-intro account-contact-note">A senha é armazenada com proteção e nunca é exibida para a loja ou para a equipe administrativa.</p>
           <p class="account-switch">Já tem conta? <button class="account-text-button" type="button" data-show-login>Entrar</button></p>
         </section>
 
@@ -112,11 +119,35 @@
               <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
             </label>
             <label class="form-field">Nova senha <span class="account-field-hint">Pelo menos 10 caracteres</span>
-              <input name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
+              <span class="password-input-wrap">
+                <input name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" title="Mostrar senha">👁️</button>
+              </span>
             </label>
             <button class="store-button account-submit" type="submit">Salvar nova senha <span aria-hidden="true">↗</span></button>
           </form>
           <button class="account-text-button" type="button" data-show-login>Voltar ao login</button>
+        </section>
+
+        <section data-account-view="temporary-reset" hidden>
+          <p class="kicker">Proteção da sua conta</p>
+          <h2>Crie sua senha pessoal.</h2>
+          <p class="account-intro">Você entrou com uma senha temporária emitida pelo atendimento. Escolha uma senha nova para continuar; a senha temporária deixará de funcionar.</p>
+          <form class="account-form" data-temporary-reset-form>
+            <label class="form-field">Nova senha <span class="account-field-hint">Pelo menos 10 caracteres</span>
+              <span class="password-input-wrap">
+                <input name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" title="Mostrar senha">👁️</button>
+              </span>
+            </label>
+            <label class="form-field">Confirme a nova senha
+              <span class="password-input-wrap">
+                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" title="Mostrar senha">👁️</button>
+              </span>
+            </label>
+            <button class="store-button account-submit" type="submit">Salvar minha senha <span aria-hidden="true">↗</span></button>
+          </form>
         </section>
 
         <section data-account-view="dashboard" hidden>
@@ -134,7 +165,10 @@
           <form class="account-close-form" data-account-close-form hidden>
             <p>Isso exclui seu perfil e encerra suas sessões. Os registros dos pedidos serão mantidos pela loja para consulta administrativa e ficarão sem vínculo com a conta.</p>
             <label class="form-field">Confirme sua senha
-              <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+              <span class="password-input-wrap">
+                <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" title="Mostrar senha">👁️</button>
+              </span>
             </label>
             <div class="account-close-actions">
               <button class="account-logout" type="button" data-account-close-cancel>Cancelar</button>

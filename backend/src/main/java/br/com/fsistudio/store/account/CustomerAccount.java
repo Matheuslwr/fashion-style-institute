@@ -29,6 +29,12 @@ public class CustomerAccount {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
+    @Column(name = "password_reset_required", nullable = false)
+    private boolean passwordResetRequired;
+
+    @Column(name = "password_reset_expires_at")
+    private Instant passwordResetExpiresAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -48,6 +54,19 @@ public class CustomerAccount {
 
     public void updatePassword(String passwordHash) {
         this.passwordHash = passwordHash;
+        this.passwordResetRequired = false;
+        this.passwordResetExpiresAt = null;
+    }
+
+    public void setTemporaryPassword(String passwordHash, Instant expiresAt) {
+        this.passwordHash = passwordHash;
+        this.passwordResetRequired = true;
+        this.passwordResetExpiresAt = expiresAt;
+    }
+
+    public boolean isTemporaryPasswordExpired(Instant now) {
+        return passwordResetRequired
+            && (passwordResetExpiresAt == null || !passwordResetExpiresAt.isAfter(now));
     }
 
     public boolean canAuthenticate() {
@@ -60,5 +79,6 @@ public class CustomerAccount {
     public String getPhone() { return phone; }
     public String getPasswordHash() { return passwordHash; }
     public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+    public boolean isPasswordResetRequired() { return passwordResetRequired; }
     public Instant getCreatedAt() { return createdAt; }
 }

@@ -46,6 +46,7 @@
   async function enterAccount(auth) {
     if (!auth.token || !auth.account) throw new Error('A API não retornou os dados de sessão esperados.');
     storeToken(auth.token);
+    root.querySelector('[data-login-form] [name="password"]').value = '';
     await renderDashboard(auth.account);
   }
 
@@ -85,6 +86,11 @@
   }
 
   async function renderDashboard(account) {
+    if (account.passwordResetRequired) {
+      showView('temporary-reset');
+      feedback.textContent = 'Você está usando uma senha temporária. Crie uma senha nova para continuar.';
+      return;
+    }
     showView('dashboard');
     root.querySelector('[data-account-name]').textContent = account.fullName;
     root.querySelector('[data-account-email]').textContent = account.email;
@@ -110,6 +116,22 @@
     }
   }
 
+  function bindPasswordToggle(input) {
+    if (!input || input.dataset.passwordToggleBound === 'true') return;
+    const wrapper = input.closest('.password-input-wrap');
+    const toggle = wrapper?.querySelector('[data-password-toggle]');
+    if (!toggle) return;
+    input.dataset.passwordToggleBound = 'true';
+    toggle.addEventListener('click', () => {
+      const shouldShow = input.type === 'password';
+      input.type = shouldShow ? 'text' : 'password';
+      toggle.textContent = shouldShow ? '🙈' : '👁️';
+      toggle.setAttribute('aria-label', shouldShow ? 'Ocultar senha' : 'Mostrar senha');
+      toggle.setAttribute('title', shouldShow ? 'Ocultar senha' : 'Mostrar senha');
+      if (shouldShow) input.focus({ preventScroll: true });
+    });
+  }
+
   function setBusy(form, busy) {
     const button = form.querySelector('button[type="submit"]');
     if (!button) return;
@@ -122,6 +144,8 @@
       delete button.dataset.previousText;
     }
   }
+
+  document.querySelectorAll('.password-input-wrap input').forEach(bindPasswordToggle);
 
   async function submit(form, callback) {
     feedback.textContent = '';
@@ -214,6 +238,24 @@
       const result = await request('/api/account/reset-password', data);
       showView('login');
       feedback.textContent = result.message;
+    });
+  });
+
+  root.querySelector('[data-temporary-reset-form]').addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    void submit(form, async data => {
+      if (data.newPassword !== data.confirmPassword) {
+        throw new Error('As senhas não conferem. Digite a mesma senha nos dois campos.');
+      }
+      const token = sessionStorage.getItem(tokenKey);
+      if (!token) throw new Error('Sua sessão expirou. Entre novamente com a senha temporária.');
+      await request('/api/account/complete-temporary-password-reset',
+        { newPassword: data.newPassword }, token);
+      sessionStorage.removeItem(tokenKey);
+      form.reset();
+      showView('login');
+      feedback.textContent = 'Senha atualizada. Entre novamente com sua nova senha.';
     });
   });
 

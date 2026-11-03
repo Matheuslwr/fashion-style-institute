@@ -3,9 +3,16 @@ package br.com.fsistudio.store.account;
 import java.time.Instant;
 import java.util.UUID;
 
-public record CustomerAccountView(UUID id, String fullName, String email, String phone, Instant createdAt) {
+public record CustomerAccountView(
+    UUID id,
+    String fullName,
+    String email,
+    String phone,
+    Instant createdAt,
+    boolean passwordResetRequired
+) {
     static CustomerAccountView from(CustomerAccount account) {
         return new CustomerAccountView(account.getId(), account.getFullName(), account.getEmail(),
-            account.getPhone(), account.getCreatedAt());
+            account.getPhone(), account.getCreatedAt(), account.isPasswordResetRequired());
     }
 }

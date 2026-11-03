@@ -36,6 +36,10 @@
 .account-form { display: grid; gap: 2px; }
 .account-form .form-field { margin-bottom: 12px; }
 .account-form .form-field[hidden] { display: none; }
+.password-input-wrap { position: relative; display: block; }
+.password-input-wrap input { width: 100%; padding-right: 42px; }
+.password-toggle { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; color: var(--wine); background: transparent; border: 0; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+.password-toggle:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
 .account-contact-choice { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 15px; padding: 0; border: 0; }
 .account-contact-choice legend { width: 100%; margin-bottom: 9px; color: var(--ink); font-size: .76rem; font-weight: 700; }
 .account-contact-choice label { display: inline-flex; align-items: center; gap: 8px; min-width: 112px; padding: 11px 14px; color: var(--wine); background: #f8f2ec; border: 1px solid var(--line); cursor: pointer; font-size: .78rem; font-weight: 700; }

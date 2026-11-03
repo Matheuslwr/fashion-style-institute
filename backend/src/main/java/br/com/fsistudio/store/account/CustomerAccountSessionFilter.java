@@ -42,7 +42,8 @@ public class CustomerAccountSessionFilter extends OncePerRequestFilter {
                 return;
             }
             var authentication = new UsernamePasswordAuthenticationToken(principal, null,
-                List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER")));
+                List.of(new SimpleGrantedAuthority(principal.passwordResetRequired()
+                    ? "ROLE_PASSWORD_RESET" : "ROLE_CUSTOMER")));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
         chain.doFilter(request, response);

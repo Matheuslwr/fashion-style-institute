@@ -43,5 +43,9 @@ public final class AccountRequests {
         @NotBlank @Size(min = 10, max = 72) String newPassword
     ) { }
 
+    public record CompleteTemporaryPasswordReset(
+        @NotBlank @Size(min = 10, max = 72) String newPassword
+    ) { }
+
     public record CloseAccount(@NotBlank @Size(max = 72) String password) { }
 }

@@ -36,6 +36,18 @@
           <button class="admin-secondary-button" type="button" data-logout>Sair</button>
         </div>
       </div>
+      <section class="admin-account-panel" aria-labelledby="admin-accounts-heading">
+        <h2 id="admin-accounts-heading">Acesso de clientes</h2>
+        <p class="admin-hint">Pesquise por nome, e-mail ou telefone. A senha temporária expira em 24 horas, invalida as sessões atuais e exige que a pessoa crie uma senha própria ao entrar. Entregue-a diretamente ao cliente após confirmar a identidade.</p>
+        <form class="admin-account-search" data-account-search-form>
+          <label class="admin-field">Buscar conta de cliente
+            <input name="query" type="search" minlength="2" maxlength="120" required placeholder="Nome, e-mail ou telefone">
+          </label>
+          <button class="store-button" type="submit">Buscar</button>
+        </form>
+        <div class="admin-account-list" data-admin-accounts></div>
+        <div class="admin-temp-password-result" data-temporary-password-result hidden role="status" aria-live="polite"></div>
+      </section>
       <p class="admin-orders-warning">Antes de confirmar, confira o crédito no extrato do banco. Comprovante ou captura de tela enviado pelo cliente não confirma pagamento.</p>
       <p class="admin-feedback" data-admin-feedback role="status" aria-live="polite"></p>
       <section class="admin-orders-list" aria-label="Pedidos recebidos" data-admin-orders></section>

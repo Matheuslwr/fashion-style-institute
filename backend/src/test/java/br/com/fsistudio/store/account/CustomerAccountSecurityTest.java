@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import br.com.fsistudio.store.config.SecurityConfiguration;
 
-@WebMvcTest(value = CustomerAccountController.class, properties = {
+@WebMvcTest(value = { CustomerAccountController.class, CustomerAccountAdminController.class }, properties = {
     "app.admin.username=admin",
     "app.admin.password=test-password",
     "app.cors.allowed-origins=http://localhost:5500"
@@ -48,7 +49,8 @@ class CustomerAccountSecurityTest {
     void accountLoginRemainsPublic() throws Exception {
         when(accounts.login(org.mockito.ArgumentMatchers.any())).thenReturn(new AccountAuthResponse(
             "token", Instant.now().plusSeconds(60),
-            new CustomerAccountView(UUID.randomUUID(), "Cliente", "cliente@example.com", "+5541999999999", Instant.now())));
+            new CustomerAccountView(UUID.randomUUID(), "Cliente", "cliente@example.com", "+5541999999999",
+                Instant.now(), false)));
         mockMvc.perform(post("/api/account/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -65,5 +67,55 @@ class CustomerAccountSecurityTest {
                     {"email":"cliente@example.com"}
                     """))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    void customerAccountSearchRequiresAdministratorAuthentication() throws Exception {
+        mockMvc.perform(get("/api/admin/accounts").param("query", "cl"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void administratorCanSearchCustomerAccounts() throws Exception {
+        when(accounts.searchAdminAccounts("cl")).thenReturn(List.of());
+        mockMvc.perform(get("/api/admin/accounts")
+                .param("query", "cl")
+                .with(httpBasic("admin", "test-password")))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void administratorCanIssueTemporaryPasswordForCustomer() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        when(accounts.issueTemporaryPassword(accountId)).thenReturn(
+            new AdminTemporaryPasswordResponse("temporary-password", Instant.now().plusSeconds(3600)));
+        mockMvc.perform(post("/api/admin/accounts/" + accountId + "/temporary-password")
+                .with(httpBasic("admin", "test-password")))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void temporaryPasswordSessionCanOnlyReadOwnProfileAndCompletePasswordReset() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        when(accounts.authenticate("temporary-token")).thenReturn(
+            new CustomerPrincipal(accountId, null, "+5541999999999", "Cliente", true));
+        when(accounts.getProfile(org.mockito.ArgumentMatchers.any())).thenReturn(
+            new CustomerAccountView(accountId, "Cliente", null, "+5541999999999", Instant.now(), true));
+
+        mockMvc.perform(get("/api/account/me")
+                .header("Authorization", "Bearer temporary-token"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/account/orders")
+                .header("Authorization", "Bearer temporary-token"))
+            .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/account/complete-temporary-password-reset")
+                .header("Authorization", "Bearer temporary-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"newPassword":"senha-nova-segura"}
+                    """))
+            .andExpect(status().isNoContent());
     }
 }
