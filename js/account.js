@@ -122,10 +122,29 @@
     const toggle = wrapper?.querySelector('[data-password-toggle]');
     if (!toggle) return;
     input.dataset.passwordToggleBound = 'true';
+    const renderIcon = visible => {
+      const namespace = 'http://www.w3.org/2000/svg';
+      const icon = document.createElementNS(namespace, 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+      const eye = document.createElementNS(namespace, 'path');
+      eye.setAttribute('d', 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z');
+      const pupil = document.createElementNS(namespace, 'circle');
+      pupil.setAttribute('cx', '12');
+      pupil.setAttribute('cy', '12');
+      pupil.setAttribute('r', '3');
+      const slash = document.createElementNS(namespace, 'path');
+      slash.setAttribute('d', 'M3 3l18 18');
+      slash.classList.add('password-toggle-slash');
+      icon.append(eye, pupil, slash);
+      toggle.replaceChildren(icon);
+      toggle.classList.toggle('is-visible', visible);
+    };
+    renderIcon(false);
     toggle.addEventListener('click', () => {
       const shouldShow = input.type === 'password';
       input.type = shouldShow ? 'text' : 'password';
-      toggle.textContent = shouldShow ? '🙈' : '👁️';
+      renderIcon(shouldShow);
       toggle.setAttribute('aria-label', shouldShow ? 'Ocultar senha' : 'Mostrar senha');
       toggle.setAttribute('title', shouldShow ? 'Ocultar senha' : 'Mostrar senha');
       if (shouldShow) input.focus({ preventScroll: true });
