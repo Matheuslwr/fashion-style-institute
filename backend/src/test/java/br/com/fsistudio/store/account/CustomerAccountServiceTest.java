@@ -30,6 +30,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import br.com.fsistudio.store.order.StoreOrderRepository;
@@ -203,6 +204,32 @@ class CustomerAccountServiceTest {
         assertNull(response.session());
         server.verify();
         verify(mailSender, never()).send(any(org.springframework.mail.SimpleMailMessage.class));
+    }
+
+    @Test
+    void emailRegistrationExplainsWhenBrevoRejectsTheSender() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://api.brevo.com/v3/smtp/email"))
+            .andExpect(method(HttpMethod.POST))
+            .andRespond(withBadRequest().body("""
+                {"code":"invalid_parameter","message":"example provider detail"}
+                """));
+
+        CustomerAccountService apiService = new CustomerAccountService(
+            accounts, loginLimiter, sessions, emailCodes, orders, orderService,
+            new BCryptPasswordEncoder(), mailSender, builder, "loja@example.com",
+            "test-brevo-key", "", "", "");
+        when(accounts.saveAndFlush(any(CustomerAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(emailCodes.findForUpdate(any(), any())).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> apiService.register(new AccountRequests.Register(
+                "Cliente", "cliente@example.com", null, "senha-com-dez")));
+
+        assertTrue(exception.getReason().contains("remetente verificado"));
+        org.junit.jupiter.api.Assertions.assertFalse(exception.getReason().contains("example provider detail"));
+        server.verify();
     }
 
     @Test

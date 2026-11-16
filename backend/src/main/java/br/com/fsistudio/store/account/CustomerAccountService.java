@@ -9,6 +9,8 @@ import java.util.Base64;
 import java.util.Locale;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,8 @@ public class CustomerAccountService {
     private static final Duration PASSWORD_RESET_SESSION_LIFETIME = Duration.ofMinutes(10);
     private static final String TEMPORARY_PASSWORD_CHARACTERS =
         "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final Pattern BREVO_ERROR_CODE_PATTERN =
+        Pattern.compile("\"code\"\\s*:\\s*\"([A-Za-z0-9_-]{1,60})\"");
     private static final SecureRandom RANDOM = new SecureRandom();
     private final CustomerAccountRepository accounts;
     private final CustomerLoginAttemptLimiter loginLimiter;
@@ -336,14 +340,34 @@ public class CustomerAccountService {
                 .retrieve()
                 .toBodilessEntity();
         } catch (RestClientResponseException exception) {
-            LOGGER.warn("Brevo delivery failed for {} code (HTTP {})", purpose, exception.getStatusCode().value());
+            String errorCode = brevoErrorCode(exception.getResponseBodyAsString());
+            LOGGER.warn("Brevo delivery failed for {} code (HTTP {}, provider code {})",
+                purpose, exception.getStatusCode().value(), errorCode);
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "O provedor de e-mail recusou o envio. Confira BREVO_API_KEY e se MAIL_FROM está autorizado como remetente no Brevo.");
+                brevoFailureMessage(exception.getStatusCode().value(), errorCode));
         } catch (RestClientException exception) {
             LOGGER.warn("Brevo delivery failed for {} code ({})", purpose, exception.getClass().getSimpleName());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                 "Não foi possível conectar ao serviço de e-mail pela API HTTPS. Tente novamente mais tarde.", exception);
         }
+    }
+
+    private static String brevoErrorCode(String responseBody) {
+        Matcher matcher = BREVO_ERROR_CODE_PATTERN.matcher(responseBody);
+        return matcher.find() ? matcher.group(1).toLowerCase(Locale.ROOT) : "unknown";
+    }
+
+    private static String brevoFailureMessage(int status, String errorCode) {
+        return switch (errorCode) {
+            case "unauthorized" -> "O Brevo não aceitou BREVO_API_KEY. Confira se a chave é válida e tem permissão para e-mails transacionais.";
+            case "permission_denied" -> "A chave do Brevo não tem permissão para enviar e-mails transacionais. Habilite essa permissão na chave API.";
+            case "account_under_validation" -> "O Brevo ainda está validando a conta. Conclua a validação solicitada no painel do Brevo.";
+            case "not_enough_credits", "insufficient_credits" -> "A conta do Brevo não tem créditos disponíveis para enviar o e-mail.";
+            case "invalid_parameter", "missing_parameter", "bad_request", "unprocessable_entity", "sender_not_found" ->
+                "O Brevo recusou o remetente. Confira se MAIL_FROM é exatamente o remetente verificado no Brevo.";
+            default -> "O Brevo recusou o envio (HTTP " + status + ", código " + errorCode
+                + "). Confira a chave API, a permissão de envio transacional, o remetente verificado e o status da conta no Brevo.";
+        };
     }
 
     private void verifyCode(CustomerAccountEmailCode code, String rawCode) {
