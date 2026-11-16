@@ -1361,14 +1361,15 @@
     if (addButton) addButton.disabled = !selectedSize;
   }
 
+  function imageColorVariant(imageRecord) {
+    return product.colors.find((color) => normalizeColor(color) === normalizeColor(imageRecord?.color)) || '';
+  }
+
   function selectProductColor(color, selectedImage = null) {
-    const imageRecord = product.imagesList.find((image) => normalizeColor(image.color) === normalizeColor(color));
+    const imageRecord = product.imagesList.find((image) => imageColorVariant(image) === color);
     showProductImage(selectedImage || imageRecord || product.imagesList[0]);
     const selectedColor = document.querySelector('#selected-color');
     if (selectedColor) selectedColor.textContent = color;
-    document.querySelectorAll('.color-option').forEach((button) => {
-      button.classList.toggle('is-selected', button.dataset.productColor === color);
-    });
     renderProductSizes(color, document.querySelector('#selected-size')?.textContent.trim() || '');
   }
 
@@ -1377,11 +1378,14 @@
     const mainImage = document.querySelector('#main-product-image');
     if (mainImage) {
       mainImage.src = productImageUrl(imageRecord.imageUrl);
-      mainImage.alt = imageRecord.altText || `${product.name}${imageRecord.color ? `, cor ${imageRecord.color}` : ''}`;
+      const color = imageColorVariant(imageRecord);
+      mainImage.alt = `${product.name}${color ? `, cor ${color}` : ''}`;
     }
     const selectedIndex = product.imagesList.indexOf(imageRecord);
     document.querySelectorAll('[data-product-image-index]').forEach((button) => {
-      button.classList.toggle('is-selected', Number(button.dataset.productImageIndex) === selectedIndex);
+      const selected = Number(button.dataset.productImageIndex) === selectedIndex;
+      button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
     });
   }
 
@@ -1390,7 +1394,6 @@
     const colors = product.colors;
     const firstAvailableColor = colors.find((color) => product.variants.some((variant) => variant.color === color && variant.stock > 0)) || colors[0];
     const thumbnailList = document.querySelector('.product-thumbnails');
-    const colorList = document.querySelector('.color-options');
     const title = document.querySelector('.product-info h1');
     const watchMeasurements = product.watchMeasurements;
     const watchMeasurementsButton = document.querySelector('[data-open-watch-measurements]');
@@ -1432,30 +1435,15 @@
       button.className = 'product-thumb';
       button.type = 'button';
       button.dataset.productImageIndex = String(index);
-      button.setAttribute('aria-label', `Ver foto ${index + 1} de ${product.name}${imageRecord.color ? `, cor ${imageRecord.color}` : ''}`);
+      const color = imageColorVariant(imageRecord);
+      button.setAttribute('aria-label', `Ver foto ${index + 1} de ${product.name}${color ? `, cor ${color}` : ''}`);
+      button.setAttribute('aria-pressed', 'false');
       const thumbnailImage = document.createElement('img');
       thumbnailImage.src = productImageUrl(imageRecord.imageUrl);
       thumbnailImage.alt = '';
-      button.append(thumbnailImage);
-      return button;
-    }));
-    if (colorList) colorList.replaceChildren(...colors.map((color) => {
-      const unavailable = !product.variants.some((variant) => variant.color === color && variant.stock > 0);
-      const button = document.createElement('button');
-      button.className = `color-option${unavailable ? ' is-unavailable' : ''}`;
-      button.type = 'button';
-      button.dataset.productColor = color;
-      button.setAttribute('aria-label', `${unavailable ? 'Indisponível: ' : 'Selecionar '}${color}`);
-      button.disabled = unavailable;
-      const colorImage = document.createElement('img');
-      colorImage.src = imagePath(product, color);
-      colorImage.alt = '';
-      button.append(colorImage);
-      if (unavailable) {
-        const label = document.createElement('span');
-        label.textContent = 'Indisponível';
-        button.append(label);
-      }
+      const colorLabel = document.createElement('span');
+      colorLabel.textContent = color || `Foto ${index + 1}`;
+      button.append(thumbnailImage, colorLabel);
       return button;
     }));
     const price = document.querySelector('.product-price-large');
@@ -1824,16 +1812,11 @@
       renderMiniCart(cart);
       return;
     }
-    const colorButton = event.target.closest('[data-product-color]');
-    if (colorButton && !colorButton.disabled) {
-      selectProductColor(colorButton.dataset.productColor);
-      return;
-    }
     const imageButton = event.target.closest('[data-product-image-index]');
     if (imageButton) {
       const imageRecord = product?.imagesList[Number(imageButton.dataset.productImageIndex)];
       if (!imageRecord) return;
-      const imageColor = product.colors.find((color) => normalizeColor(color) === normalizeColor(imageRecord.color));
+      const imageColor = imageColorVariant(imageRecord);
       if (imageColor) selectProductColor(imageColor, imageRecord);
       else showProductImage(imageRecord);
       return;
