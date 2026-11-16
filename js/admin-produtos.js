@@ -83,16 +83,48 @@
       const preview = document.createElement('img');
       preview.src = resolveImage(image.imageUrl);
       preview.alt = image.altText;
-      const label = document.createElement('span');
-      label.textContent = image.color || image.altText;
+      const colorLabel = document.createElement('label');
+      colorLabel.className = 'admin-image-color';
+      colorLabel.textContent = `Cor da imagem ${index + 1}`;
+      const colorInput = document.createElement('input');
+      colorInput.type = 'text';
+      colorInput.maxLength = 80;
+      colorInput.placeholder = 'Ex.: Preto';
+      colorInput.value = image.color || '';
+      colorInput.addEventListener('input', () => { images[index].color = colorInput.value; });
+      colorLabel.append(colorInput);
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.textContent = '×';
       remove.setAttribute('aria-label', `Remover imagem ${image.altText}`);
       remove.addEventListener('click', () => { images.splice(index, 1); renderImages(); });
-      item.append(preview, label, remove);
+      item.append(preview, colorLabel, remove);
       return item;
     }));
+  }
+
+  function validateImageColors(variants) {
+    const variantColors = new Map(variants.map((variant) => [
+      variant.color.trim().toLocaleLowerCase('pt-BR'),
+      variant.color.trim()
+    ]));
+    const imageColors = new Set();
+    for (const image of images) {
+      const color = (image.color || '').trim();
+      if (!color) continue;
+      const normalizedColor = color.toLocaleLowerCase('pt-BR');
+      if (!variantColors.has(normalizedColor)) {
+        return 'Associe cada imagem a uma única cor já cadastrada nas variantes.';
+      }
+      imageColors.add(normalizedColor);
+    }
+    const missingColors = [...variantColors.entries()]
+      .filter(([color]) => !imageColors.has(color))
+      .map(([, color]) => color);
+    if (missingColors.length) {
+      return `Adicione ou associe ao menos uma imagem para cada cor: ${missingColors.join(', ')}.`;
+    }
+    return '';
   }
 
   function resolveImage(path) {
@@ -312,12 +344,18 @@
       feedback.textContent = 'Adicione pelo menos uma imagem ao produto.';
       return;
     }
+    const imageColorError = validateImageColors(variants);
+    if (imageColorError) {
+      feedback.textContent = imageColorError;
+      return;
+    }
     if (promotionalValue !== '' && Math.round(Number(promotionalValue) * 100) >= priceCents) {
       feedback.textContent = 'O preço promocional deve ser menor que o preço normal.';
       return;
     }
+    const productName = productForm.elements.name.value.trim();
     const payload = {
-      name: productForm.elements.name.value.trim(),
+      name: productName,
       description: productForm.elements.description.value.trim(),
       details: productForm.elements.details.value.trim(),
       productType: productTypeSelect.value,
@@ -332,7 +370,14 @@
       categoryId: productForm.elements.categoryId.value,
       featured: productForm.elements.featured.checked,
       active: productForm.elements.active.checked,
-      images,
+      images: images.map((image) => {
+        const color = (image.color || '').trim();
+        return {
+          ...image,
+          altText: `${productName}${color ? ` na cor ${color}` : ''}`,
+          color
+        };
+      }),
       variants
     };
     try {

@@ -85,8 +85,11 @@
     return item.variants.some((variant) => variant.color === color && variant.size === String(size) && variant.stock > 0);
   }
 
-  function imagePath(item, color) {
-    const image = item.images[color] || item.images.default || Object.values(item.images)[0];
+  function normalizeColor(color) {
+    return String(color || '').trim().toLocaleLowerCase('pt-BR');
+  }
+
+  function productImageUrl(image) {
     if (!image) return '';
     if (/^https?:\/\//i.test(image)) return image;
     if (image.startsWith('/uploads/')) return `${apiBase}${image}`;
@@ -94,10 +97,16 @@
     return new URL(image.replace(/^\//, ''), new URL('../', script.src)).href;
   }
 
+  function imagePath(item, color) {
+    const image = item.images[color] || item.images.default || Object.values(item.images)[0];
+    return productImageUrl(image);
+  }
+
   function normalizeProduct(item) {
     const images = {};
     item.images.forEach((image) => {
-      if (image.color && !images[image.color]) images[image.color] = image.imageUrl;
+      const variant = item.variants.find((option) => normalizeColor(option.color) === normalizeColor(image.color));
+      if (variant && !images[variant.color]) images[variant.color] = image.imageUrl;
     });
     const defaultImage = item.images[0]?.imageUrl;
     if (defaultImage) images.default = defaultImage;
@@ -1352,19 +1361,28 @@
     if (addButton) addButton.disabled = !selectedSize;
   }
 
-  function selectProductColor(color) {
-    const image = imagePath(product, color);
-    const mainImage = document.querySelector('#main-product-image');
-    if (mainImage) {
-      mainImage.src = image;
-      mainImage.alt = `${product.name}, cor ${color}`;
-    }
+  function selectProductColor(color, selectedImage = null) {
+    const imageRecord = product.imagesList.find((image) => normalizeColor(image.color) === normalizeColor(color));
+    showProductImage(selectedImage || imageRecord || product.imagesList[0]);
     const selectedColor = document.querySelector('#selected-color');
     if (selectedColor) selectedColor.textContent = color;
-    document.querySelectorAll('[data-product-color]').forEach((button) => {
+    document.querySelectorAll('.color-option').forEach((button) => {
       button.classList.toggle('is-selected', button.dataset.productColor === color);
     });
     renderProductSizes(color, document.querySelector('#selected-size')?.textContent.trim() || '');
+  }
+
+  function showProductImage(imageRecord) {
+    if (!imageRecord) return;
+    const mainImage = document.querySelector('#main-product-image');
+    if (mainImage) {
+      mainImage.src = productImageUrl(imageRecord.imageUrl);
+      mainImage.alt = imageRecord.altText || `${product.name}${imageRecord.color ? `, cor ${imageRecord.color}` : ''}`;
+    }
+    const selectedIndex = product.imagesList.indexOf(imageRecord);
+    document.querySelectorAll('[data-product-image-index]').forEach((button) => {
+      button.classList.toggle('is-selected', Number(button.dataset.productImageIndex) === selectedIndex);
+    });
   }
 
   function initializeProductDetail() {
@@ -1373,7 +1391,6 @@
     const firstAvailableColor = colors.find((color) => product.variants.some((variant) => variant.color === color && variant.stock > 0)) || colors[0];
     const thumbnailList = document.querySelector('.product-thumbnails');
     const colorList = document.querySelector('.color-options');
-    const mainImage = document.querySelector('#main-product-image');
     const title = document.querySelector('.product-info h1');
     const watchMeasurements = product.watchMeasurements;
     const watchMeasurementsButton = document.querySelector('[data-open-watch-measurements]');
@@ -1410,19 +1427,14 @@
     const categoryLabel = document.querySelector('[data-product-category]');
     if (categoryLabel) categoryLabel.textContent = product.category.name;
     const detailImages = product.imagesList;
-    if (mainImage) {
-      mainImage.src = imagePath(product, firstAvailableColor);
-      mainImage.alt = detailImages[0]?.altText || `${product.name}, cor ${firstAvailableColor}`;
-    }
-    if (thumbnailList) thumbnailList.replaceChildren(...detailImages.map((imageRecord) => {
-      const color = imageRecord.color || firstAvailableColor;
+    if (thumbnailList) thumbnailList.replaceChildren(...detailImages.map((imageRecord, index) => {
       const button = document.createElement('button');
       button.className = 'product-thumb';
       button.type = 'button';
-      button.dataset.productColor = color;
-      button.setAttribute('aria-label', `Ver ${imageRecord.altText || `${product.name}, ${color}`}`);
+      button.dataset.productImageIndex = String(index);
+      button.setAttribute('aria-label', `Ver foto ${index + 1} de ${product.name}${imageRecord.color ? `, cor ${imageRecord.color}` : ''}`);
       const thumbnailImage = document.createElement('img');
-      thumbnailImage.src = imagePath(product, color);
+      thumbnailImage.src = productImageUrl(imageRecord.imageUrl);
       thumbnailImage.alt = '';
       button.append(thumbnailImage);
       return button;
@@ -1815,6 +1827,15 @@
     const colorButton = event.target.closest('[data-product-color]');
     if (colorButton && !colorButton.disabled) {
       selectProductColor(colorButton.dataset.productColor);
+      return;
+    }
+    const imageButton = event.target.closest('[data-product-image-index]');
+    if (imageButton) {
+      const imageRecord = product?.imagesList[Number(imageButton.dataset.productImageIndex)];
+      if (!imageRecord) return;
+      const imageColor = product.colors.find((color) => normalizeColor(color) === normalizeColor(imageRecord.color));
+      if (imageColor) selectProductColor(imageColor, imageRecord);
+      else showProductImage(imageRecord);
       return;
     }
     const sizeButton = event.target.closest('.size-option');

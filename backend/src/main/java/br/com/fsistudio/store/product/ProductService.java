@@ -1,8 +1,12 @@
 package br.com.fsistudio.store.product;
 
 import java.text.Normalizer;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -54,6 +58,7 @@ public class ProductService {
         validatePrices(request);
         ProductType productType = request.productType() == null ? ProductType.STANDARD : request.productType();
         WatchMeasurements watchMeasurements = validateProductType(productType, request.watchMeasurements());
+        validateImageColors(request);
         Category category = category(request.categoryId());
         String slug = uniqueSlug(request.name(), null);
         Product product = new Product(request.name().trim(), slug, request.description().trim(), normalizeDetails(request.details()),
@@ -66,6 +71,7 @@ public class ProductService {
     @Transactional
     public ProductResponse update(UUID id, ProductRequest request) {
         validatePrices(request);
+        validateImageColors(request);
         products.lockIdById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produto não encontrado"));
         Product product = products.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produto não encontrado"));
@@ -92,7 +98,8 @@ public class ProductService {
 
     private void applyChildren(Product product, ProductRequest request) {
         product.replaceImages(request.images().stream()
-            .map(image -> new ProductImage(image.imageUrl().trim(), image.altText().trim(), image.color(), image.displayOrder()))
+            .map(image -> new ProductImage(image.imageUrl().trim(), image.altText().trim(),
+                image.color() == null ? null : image.color().trim(), image.displayOrder()))
             .toList());
         product.replaceVariants(request.variants().stream()
             .map(variant -> new ProductVariant(variant.sku().trim(), variant.color().trim(), variant.size().trim(), variant.stock()))
@@ -107,6 +114,38 @@ public class ProductService {
 
     private static String normalizeDetails(String details) {
         return details == null ? "" : details.trim();
+    }
+
+    static void validateImageColors(ProductRequest request) {
+        Map<String, String> variantColors = new LinkedHashMap<>();
+        request.variants().forEach(variant -> {
+            String color = normalizeColor(variant.color());
+            variantColors.putIfAbsent(color, variant.color().trim());
+        });
+
+        Set<String> imageColors = new LinkedHashSet<>();
+        for (ProductRequest.ImageRequest image : request.images()) {
+            String color = normalizeColor(image.color());
+            if (color.isBlank()) continue;
+            if (!variantColors.containsKey(color)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A cor de cada imagem deve corresponder a uma única cor cadastrada nas variantes");
+            }
+            imageColors.add(color);
+        }
+
+        List<String> missingColors = variantColors.entrySet().stream()
+            .filter(entry -> !imageColors.contains(entry.getKey()))
+            .map(Map.Entry::getValue)
+            .toList();
+        if (!missingColors.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Adicione ao menos uma imagem para cada cor das variantes: " + String.join(", ", missingColors));
+        }
+    }
+
+    private static String normalizeColor(String color) {
+        return color == null ? "" : color.trim().toLowerCase(Locale.ROOT);
     }
 
     private static WatchMeasurements validateProductType(ProductType productType, WatchMeasurements measurements) {
