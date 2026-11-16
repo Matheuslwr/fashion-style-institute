@@ -12,13 +12,51 @@
     account: new URL('pages/conta.html', siteRoot).href
   };
   const actions = document.querySelector('.store-header .store-actions');
+  const iconNamespace = 'http://www.w3.org/2000/svg';
+  const navIcons = {
+    tracking: [
+      ['path', { d: 'm4 7.5 8-4.5 8 4.5v9L12 21l-8-4.5z' }],
+      ['path', { d: 'm4.5 7.8 7.5 4.3 7.5-4.3M12 12v8.5' }]
+    ],
+    account: [
+      ['circle', { cx: '12', cy: '8', r: '3.2' }],
+      ['path', { d: 'M5 20a7 7 0 0 1 14 0' }]
+    ]
+  };
+  const createNavIcon = name => {
+    const icon = document.createElementNS(iconNamespace, 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    navIcons[name].forEach(([tag, attributes]) => {
+      const shape = document.createElementNS(iconNamespace, tag);
+      Object.entries(attributes).forEach(([attribute, value]) => shape.setAttribute(attribute, value));
+      icon.append(shape);
+    });
+    return icon;
+  };
+  document.querySelectorAll('.store-header .tracking-nav-button').forEach(link => {
+    const spans = [...link.querySelectorAll(':scope > span')];
+    const label = spans.at(-1);
+    const icon = link.querySelector('.tracking-nav-icon') || spans[0] || document.createElement('span');
+    icon.className = 'tracking-nav-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.replaceChildren(createNavIcon('tracking'));
+    if (!link.contains(icon)) link.prepend(icon);
+    if (label) label.textContent = 'Acompanhar';
+  });
   if (actions && !actions.querySelector('[data-account-link]')) {
     const accountLink = document.createElement('a');
     accountLink.className = 'tracking-nav-button';
     accountLink.href = destinations.account;
     accountLink.dataset.accountLink = '';
     accountLink.setAttribute('aria-label', 'Minha conta');
-    accountLink.innerHTML = '<span aria-hidden="true">♙</span><span>Minha conta</span>';
+    const icon = document.createElement('span');
+    icon.className = 'tracking-nav-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.append(createNavIcon('account'));
+    const label = document.createElement('span');
+    label.textContent = 'Minha conta';
+    accountLink.append(icon, label);
     actions.append(accountLink);
   }
   const pathname = window.location.pathname;
