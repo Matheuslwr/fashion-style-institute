@@ -29,6 +29,7 @@ class PixPaymentServiceTest {
 
         PixPaymentService.PixCode code = service.createCode(order);
 
+        assertTrue(code.payload().startsWith("000201010211"));
         assertTrue(code.payload().contains("BR.GOV.BCB.PIX"));
         assertTrue(code.payload().contains("test-pix-key"));
         assertTrue(code.payload().contains("17.34"));

@@ -56,7 +56,7 @@ public class PixPaymentService {
         String merchantAccount = field("00", "BR.GOV.BCB.PIX") + field("01", key);
         String additionalData = field("05", order.getOrderNumber());
         String payload = field("00", "01")
-            + field("01", "12")
+            + field("01", "11")
             + field("26", merchantAccount)
             + field("52", "0000")
             + field("53", "986")
