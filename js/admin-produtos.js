@@ -13,6 +13,7 @@
   const categoryNameInput = document.querySelector('[data-new-category-name]');
   const imageList = document.querySelector('[data-image-list]');
   const variantList = document.querySelector('[data-variant-list]');
+  const uploadImageColor = productForm.elements.imageColor;
   const productTypeSelect = document.querySelector('[data-product-type]');
   const watchMeasurementsFieldset = document.querySelector('[data-watch-measurements]');
   let authorization = '';
@@ -71,9 +72,36 @@
     remove.type = 'button';
     remove.textContent = '×';
     remove.setAttribute('aria-label', 'Remover variante');
-    remove.addEventListener('click', () => row.remove());
+    remove.addEventListener('click', () => {
+      row.remove();
+      updateImageColorOptions();
+    });
     row.append(remove);
     variantList.append(row);
+  }
+
+  function getVariantColors() {
+    const colors = new Map();
+    variantList.querySelectorAll('[name="variant-color"]').forEach((input) => {
+      const color = input.value.trim();
+      if (color && !colors.has(color.toLocaleLowerCase('pt-BR'))) {
+        colors.set(color.toLocaleLowerCase('pt-BR'), color);
+      }
+    });
+    return [...colors.values()];
+  }
+
+  function renderImageColorOptions(select, currentColor = '') {
+    const colors = getVariantColors();
+    const normalizedColor = currentColor.trim().toLocaleLowerCase('pt-BR');
+    const matchingColor = colors.find((color) => color.toLocaleLowerCase('pt-BR') === normalizedColor);
+    const options = [new Option('Selecione uma cor', '')];
+    if (currentColor && !matchingColor) {
+      options.push(new Option(`${currentColor} (sem variante)`, currentColor));
+    }
+    colors.forEach((color) => options.push(new Option(color, color)));
+    select.replaceChildren(...options);
+    select.value = matchingColor || currentColor || '';
   }
 
   function renderImages() {
@@ -86,13 +114,12 @@
       const colorLabel = document.createElement('label');
       colorLabel.className = 'admin-image-color';
       colorLabel.textContent = `Cor da imagem ${index + 1}`;
-      const colorInput = document.createElement('input');
-      colorInput.type = 'text';
-      colorInput.maxLength = 80;
-      colorInput.placeholder = 'Ex.: Preto';
-      colorInput.value = image.color || '';
-      colorInput.addEventListener('input', () => { images[index].color = colorInput.value; });
-      colorLabel.append(colorInput);
+      const colorSelect = document.createElement('select');
+      colorSelect.setAttribute('aria-label', `Cor da imagem ${index + 1}`);
+      renderImageColorOptions(colorSelect, image.color || '');
+      colorSelect.addEventListener('change', () => { images[index].color = colorSelect.value; });
+      image.color = colorSelect.value;
+      colorLabel.append(colorSelect);
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.textContent = '×';
@@ -101,6 +128,11 @@
       item.append(preview, colorLabel, remove);
       return item;
     }));
+  }
+
+  function updateImageColorOptions() {
+    renderImageColorOptions(uploadImageColor, uploadImageColor.value);
+    renderImages();
   }
 
   function validateImageColors(variants) {
@@ -206,10 +238,10 @@
     productForm.elements.featured.checked = product?.featured || false;
     productForm.elements.active.checked = product?.active ?? true;
     renderCategories(product?.category.id || categories[0]?.id || '');
-    images = product ? product.images.map(image => ({ ...image })) : [];
-    renderImages();
     variantList.replaceChildren();
     (product?.variants.length ? product.variants : [{}]).forEach(createVariantRow);
+    images = product ? product.images.map(image => ({ ...image })) : [];
+    updateImageColorOptions();
     document.querySelector('[data-editor-title]').textContent = product ? 'Editar produto' : 'Novo produto';
     productEditor.hidden = false;
     productEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -228,7 +260,7 @@
 
   async function uploadImages(files) {
     const name = productForm.elements.name.value.trim() || 'Produto';
-    const color = productForm.elements.imageColor.value.trim();
+    const color = uploadImageColor.value.trim();
     if (images.length + files.length > 12) {
       throw new Error('Cada produto pode ter no máximo 12 imagens. Remova algumas antes de enviar.');
     }
@@ -270,7 +302,11 @@
   document.querySelector('[data-new-product]').addEventListener('click', () => showEditor());
   productTypeSelect.addEventListener('change', updateWatchMeasurementFields);
   document.querySelectorAll('[data-cancel-edit]').forEach(button => button.addEventListener('click', () => { productEditor.hidden = true; }));
-  document.querySelector('[data-add-variant]').addEventListener('click', () => createVariantRow());
+  document.querySelector('[data-add-variant]').addEventListener('click', () => {
+    createVariantRow();
+    updateImageColorOptions();
+  });
+  variantList.addEventListener('input', updateImageColorOptions);
   document.querySelector('[data-add-category]').addEventListener('click', () => {
     categoryCreator.hidden = false;
     categoryNameInput.focus();

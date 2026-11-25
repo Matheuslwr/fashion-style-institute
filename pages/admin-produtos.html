@@ -79,19 +79,19 @@
             </div>
 
             <fieldset class="admin-fieldset">
-              <legend>Imagens</legend>
-              <label class="admin-field">Cor padrão das imagens enviadas<input name="imageColor" maxlength="80" placeholder="Ex.: Preto"></label>
-              <label class="admin-field">Adicionar imagens<input name="images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-image-files></label>
-              <p class="admin-hint">JPEG, PNG, WebP ou GIF; até 8 MB por imagem. Use uma cor por vez. Você também pode enviar várias fotos e ajustar a cor de cada miniatura antes de salvar; cada cor deve corresponder a uma variante.</p>
-              <div class="admin-image-list" data-image-list></div>
-            </fieldset>
-
-            <fieldset class="admin-fieldset">
               <legend>Variantes, SKU e estoque</legend>
               <p class="admin-hint">Cadastre uma linha para cada combinação de cor e tamanho.</p>
               <div class="admin-variant-header" aria-hidden="true"><span>Cor</span><span>Tamanho</span><span>SKU</span><span>Estoque</span><span></span></div>
               <div class="admin-variant-list" data-variant-list></div>
               <button class="admin-secondary-button" type="button" data-add-variant>Adicionar variante</button>
+            </fieldset>
+
+            <fieldset class="admin-fieldset">
+              <legend>Imagens</legend>
+              <label class="admin-field">Cor das imagens deste envio<select name="imageColor" data-upload-image-color></select></label>
+              <label class="admin-field">Adicionar imagens<input name="images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-image-files></label>
+              <p class="admin-hint">Cadastre primeiro as variantes. Envie juntas várias fotos da mesma cor (frente, costas, detalhes) e escolha outra cor para o próximo envio. Você também pode ajustar a cor de cada miniatura; cada cor deve corresponder a uma variante.</p>
+              <div class="admin-image-list" data-image-list></div>
             </fieldset>
 
             <div class="admin-form-actions">

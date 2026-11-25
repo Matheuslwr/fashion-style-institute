@@ -65,7 +65,7 @@ public class OrderController {
         StoreOrder order = creation.order();
         if (!creation.created()) return orders.getOrder(order.getId());
         try {
-            PixPaymentService.PixCode code = pix.createCode(order);
+            PixPaymentService.PixCode code = pix.createCode();
             orders.savePixCode(order.getId(), code.payload(), code.qrCodeBase64());
         } catch (RuntimeException exception) {
             orders.markPaymentSetupFailed(order.getId());

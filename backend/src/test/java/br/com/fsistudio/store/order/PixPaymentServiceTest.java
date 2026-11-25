@@ -3,11 +3,10 @@ package br.com.fsistudio.store.order;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
 
 import javax.imageio.ImageIO;
 
@@ -20,22 +19,13 @@ import com.google.zxing.common.HybridBinarizer;
 
 class PixPaymentServiceTest {
     @Test
-    void createsAmountSpecificPixPayloadAndReadablePngQrCode() throws Exception {
-        PixPaymentService service = new PixPaymentService("test-pix-key", "Loja Exemplo", "Curitiba");
-        CheckoutRequest.Customer customer = new CheckoutRequest.Customer("Cliente", "cliente@example.com", "41999999999");
-        StoreOrder order = new StoreOrder(UUID.randomUUID(), UUID.randomUUID(), "FSI-A1B2C3D4", customer,
-            "80000000", "PR", "Curitiba", "Rua", "10", null, "Centro", 0, 1234, 500,
-            List.of());
+    void preservesTheBankGeneratedPixPayloadInTheReadablePngQrCode() throws Exception {
+        String bankPayload = staticPayload();
+        PixPaymentService service = new PixPaymentService(bankPayload);
 
-        PixPaymentService.PixCode code = service.createCode(order);
+        PixPaymentService.PixCode code = service.createCode();
 
-        assertTrue(code.payload().startsWith("000201010211"));
-        assertTrue(code.payload().contains("BR.GOV.BCB.PIX"));
-        assertTrue(code.payload().contains("test-pix-key"));
-        assertTrue(code.payload().contains("17.34"));
-        assertTrue(code.payload().contains("LOJA EXEMPLO"));
-        assertTrue(code.payload().contains("CURITIBA"));
-        assertTrue(code.payload().endsWith(crc(code.payload())));
+        assertEquals(bankPayload, code.payload());
         byte[] image = Base64.getDecoder().decode(code.qrCodeBase64());
         assertEquals((byte) 0x89, image[0]);
         assertEquals((byte) 'P', image[1]);
@@ -45,11 +35,34 @@ class PixPaymentServiceTest {
     }
 
     @Test
-    void reportsPixConfigurationAsMissingWithoutExposingOrInventingAKey() {
-        PixPaymentService service = new PixPaymentService("", "", "");
+    void reportsPixConfigurationAsMissingWhenNoBankPayloadIsProvided() {
+        PixPaymentService service = new PixPaymentService("");
 
         assertFalse(service.isConfigured());
-        assertDoesNotThrow(() -> new PixPaymentService("", "", ""));
+        assertDoesNotThrow(() -> new PixPaymentService(""));
+    }
+
+    @Test
+    void rejectsBankPayloadWithInvalidCrc() {
+        assertThrows(IllegalArgumentException.class, () -> new PixPaymentService("00020163040000"));
+    }
+
+    private static String staticPayload() {
+        String merchantAccount = field("00", "BR.GOV.BCB.PIX") + field("01", "test-pix-key");
+        String body = field("00", "01")
+            + field("26", merchantAccount)
+            + field("52", "0000")
+            + field("53", "986")
+            + field("58", "BR")
+            + field("59", "LOJA EXEMPLO")
+            + field("60", "CURITIBA")
+            + field("62", field("05", "TX123"))
+            + "6304";
+        return body + crc(body + "0000");
+    }
+
+    private static String field(String id, String value) {
+        return id + String.format(java.util.Locale.ROOT, "%02d", value.length()) + value;
     }
 
     private static String crc(String payloadWithCrcPrefix) {

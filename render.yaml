@@ -36,9 +36,5 @@ services:
         value: cloudinary
       - key: CLOUDINARY_URL
         sync: false
-      - key: PIX_KEY
-        sync: false
-      - key: PIX_RECEIVER_NAME
-        sync: false
-      - key: PIX_RECEIVER_CITY
+      - key: PIX_STATIC_PAYLOAD
         sync: false

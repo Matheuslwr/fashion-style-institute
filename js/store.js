@@ -35,6 +35,38 @@
     currency: 'BRL'
   }).format(cents / 100);
 
+  const mouseHoverAvailable = window.matchMedia('(hover: hover) and (pointer: fine)');
+  document.addEventListener('pointermove', (event) => {
+    if (!mouseHoverAvailable.matches || event.pointerType !== 'mouse' || !(event.target instanceof Element)) return;
+    const imageContainer = event.target.closest('.product-card-link .product-image, .product-main-photo');
+    if (!imageContainer) return;
+    const bounds = imageContainer.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const image = imageContainer.querySelector('img');
+    if (image?.complete && image.naturalWidth && image.naturalHeight) {
+      const zoomSource = `${image.currentSrc}|${bounds.width}|${bounds.height}|${window.devicePixelRatio || 1}`;
+      if (imageContainer.dataset.zoomSource !== zoomSource) {
+        const coverScale = Math.max(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
+        const pixelSafeScale = 1 / (coverScale * (window.devicePixelRatio || 1));
+        imageContainer.style.setProperty('--image-zoom-scale', Math.min(1.9, Math.max(1, pixelSafeScale)).toFixed(2));
+        imageContainer.dataset.zoomSource = zoomSource;
+      }
+    }
+    const x = Math.min(100, Math.max(0, ((event.clientX - bounds.left) / bounds.width) * 100));
+    const y = Math.min(100, Math.max(0, ((event.clientY - bounds.top) / bounds.height) * 100));
+    imageContainer.style.setProperty('--image-zoom-x', `${x}%`);
+    imageContainer.style.setProperty('--image-zoom-y', `${y}%`);
+  }, { passive: true });
+  document.addEventListener('pointerout', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const imageContainer = event.target.closest('.product-card-link .product-image, .product-main-photo');
+    if (!imageContainer || (event.relatedTarget instanceof Node && imageContainer.contains(event.relatedTarget))) return;
+    imageContainer.style.removeProperty('--image-zoom-x');
+    imageContainer.style.removeProperty('--image-zoom-y');
+    imageContainer.style.removeProperty('--image-zoom-scale');
+    delete imageContainer.dataset.zoomSource;
+  });
+
   function productSizes(item, color) {
     return [...new Set(item.variants.filter((variant) => variant.color === color).map((variant) => variant.size))]
       .sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
@@ -356,12 +388,19 @@
     card.href = `produto-camisa-essencia.html?produto=${encodeURIComponent(item.id)}`;
     const visual = document.createElement('div');
     visual.className = 'product-image product-image-photo';
+    if (item.productType === 'WATCH') visual.classList.add('product-image-watch');
     const color = item.colors.find((name) => item.variants.some((variant) => variant.color === name && variant.stock > 0)) || item.colors[0];
     const image = document.createElement('img');
     image.src = imagePath(item, color);
     image.alt = `${item.name}, ${color}`;
     image.loading = 'lazy';
     visual.append(image);
+    if (item.promotionalPriceCents != null) {
+      const discount = document.createElement('span');
+      discount.className = 'product-card-discount';
+      discount.textContent = `-${Math.round((1 - item.price / item.originalPrice) * 100)}%`;
+      visual.append(discount);
+    }
     const type = document.createElement('p');
     type.className = 'product-type';
     type.textContent = `${item.category.name} · ${item.colors.length} cores`;
@@ -386,57 +425,128 @@
 
   function initializeRecommendations() {
     const section = document.querySelector('[data-product-recommendations]');
-    const list = section?.querySelector('[data-recommendation-list]');
-    if (!section || !list) return;
+    const carousel = section?.querySelector('[data-recommendation-carousel]');
+    if (!section || !carousel) return;
     const recommendations = products.filter((item) => item.id !== product.id);
     for (let index = recommendations.length - 1; index > 0; index -= 1) {
       const randomIndex = Math.floor(Math.random() * (index + 1));
       [recommendations[index], recommendations[randomIndex]] = [recommendations[randomIndex], recommendations[index]];
     }
-    list.replaceChildren(...recommendations.slice(0, 3).map((item) => createCatalogCard(item, 'h3')));
+    const cards = recommendations.map((item) => {
+      const card = createCatalogCard(item, 'h3');
+      card.classList.add('carousel-product-card');
+      return card;
+    });
     section.hidden = recommendations.length === 0;
+    initializeProductCarousel(carousel, cards);
+  }
+
+  function initializeProductCarousel(carousel, cards) {
+    const viewport = carousel.querySelector('[data-carousel-viewport]');
+    const track = carousel.querySelector('[data-carousel-track]');
+    const group = carousel.querySelector('[data-carousel-items], [data-recommendation-list]');
+    if (!viewport || !track || !group) return;
+    group.replaceChildren(...cards);
+    carousel.hidden = cards.length === 0;
+    if (!cards.length) return;
+
+    const disableCloneFocus = (element) => {
+      element.setAttribute('aria-hidden', 'true');
+      element.querySelectorAll('a, button, [tabindex]').forEach((child) => child.setAttribute('tabindex', '-1'));
+      element.querySelectorAll('img').forEach((image) => { image.alt = ''; });
+    };
+    const buildLoop = () => {
+      if (carousel.contains(document.activeElement)) return;
+      group.replaceChildren(...cards);
+      let cloneIndex = 0;
+      const targetWidth = viewport.clientWidth + cards[0].getBoundingClientRect().width;
+      while (group.scrollWidth < targetWidth) {
+        const clone = cards[cloneIndex % cards.length].cloneNode(true);
+        clone.dataset.carouselClone = 'true';
+        disableCloneFocus(clone);
+        group.append(clone);
+        cloneIndex += 1;
+      }
+      const duplicate = group.cloneNode(true);
+      duplicate.removeAttribute('data-carousel-items');
+      duplicate.removeAttribute('data-recommendation-list');
+      duplicate.dataset.featuredGroupDuplicate = 'true';
+      disableCloneFocus(duplicate);
+      track.replaceChildren(group, duplicate);
+      track.style.setProperty('--featured-duration', `${Math.max(20, group.scrollWidth / 32)}s`);
+    };
+    let resizeFrame = 0;
+    const scheduleLoopBuild = () => {
+      window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(buildLoop);
+    };
+    carousel.querySelectorAll('[data-carousel-direction]').forEach((button) => {
+      button.addEventListener('click', () => {
+        track.dataset.direction = button.dataset.carouselDirection;
+      });
+    });
+    carousel.addEventListener('focusout', scheduleLoopBuild);
+    window.addEventListener('resize', scheduleLoopBuild, { passive: true });
+    buildLoop();
   }
 
   function initializeFeaturedProducts() {
-    const list = document.querySelector('[data-featured-products]');
-    if (!list) return;
-    const featured = products.filter((item) => item.featured).slice(0, 4);
-    list.replaceChildren(...featured.map((item) => createCatalogCard(item, 'h3')));
-    list.hidden = featured.length === 0;
-  }
-
-  function initializeStyleGuideProduct() {
-    const image = document.querySelector('[data-style-guide-product-image]');
-    const caption = document.querySelector('[data-style-guide-product-caption]');
-    if (!image || !products.length) return;
-    const featuredProduct = products.find((item) => item.featured) || products[0];
-    const color = featuredProduct.colors.find((name) => featuredProduct.variants
-      .some((variant) => variant.color === name && variant.stock > 0)) || featuredProduct.colors[0];
-    image.src = imagePath(featuredProduct, color);
-    image.alt = featuredProduct.imagesList[0]?.altText || `${featuredProduct.name}, referência de estilo`;
-    if (caption) caption.textContent = `${featuredProduct.name} · ${featuredProduct.category.name}`;
+    const carousel = document.querySelector('[data-featured-carousel]');
+    if (!carousel) return;
+    const featured = products.filter((item) => item.featured);
+    const cards = featured.map((item) => {
+      const card = createCatalogCard(item, 'h3');
+      card.classList.add('carousel-product-card');
+      return card;
+    });
+    initializeProductCarousel(carousel, cards);
   }
 
   function initializeCategoryLinks() {
     const list = document.querySelector('[data-category-list]');
-    if (!list) return;
-    list.replaceChildren(...categories.map((category, index) => {
-      const link = document.createElement('a');
-      const knownPages = {
+    const menu = document.querySelector('[data-category-menu]');
+    const categoryOrder = { vestir: 0, acessorios: 1, 'calcados-e-variedades': 2 };
+    const availableCategories = categories
+      .filter((category) => products.some((item) => item.category.slug === category.slug))
+      .sort((left, right) => (categoryOrder[left.slug] ?? 3) - (categoryOrder[right.slug] ?? 3)
+        || left.name.localeCompare(right.name, 'pt-BR'));
+    const knownPages = {
         vestir: 'vestir.html',
         acessorios: 'acessorios.html',
         'calcados-e-variedades': 'calcados-e-variedades.html'
-      };
-      link.href = knownPages[category.slug] || `categoria.html?categoria=${encodeURIComponent(category.slug)}`;
+    };
+    const categoryHref = (slug) => knownPages[slug] || `categoria.html?categoria=${encodeURIComponent(slug)}`;
+
+    if (list) list.replaceChildren(...availableCategories.map((category, index) => {
+      const link = document.createElement('a');
+      const categoryProducts = products.filter((item) => item.category.slug === category.slug);
+      const categoryProduct = categoryProducts.find((item) => Object.keys(item.images).length) || categoryProducts[0];
+      link.href = categoryHref(category.slug);
+      const visual = document.createElement('span');
+      visual.className = 'category-card-visual';
+      if (categoryProduct) {
+        const image = document.createElement('img');
+        image.src = imagePath(categoryProduct, categoryProduct.colors[0]);
+        image.alt = '';
+        image.loading = 'lazy';
+        visual.append(image);
+      }
       const number = document.createElement('span');
+      number.className = 'category-card-number';
       number.textContent = String(index + 1).padStart(2, '0');
       const name = document.createElement('strong');
       name.textContent = category.name;
       const description = document.createElement('small');
-      description.textContent = 'Peças para descobrir por categoria';
+      description.textContent = `${categoryProducts.length} ${categoryProducts.length === 1 ? 'produto' : 'produtos'} nesta seleção`;
       const arrow = document.createElement('b');
       arrow.textContent = '↗';
-      link.append(number, name, description, arrow);
+      link.append(visual, number, name, description, arrow);
+      return link;
+    }));
+    if (menu) menu.replaceChildren(...availableCategories.map((category) => {
+      const link = document.createElement('a');
+      link.href = categoryHref(category.slug);
+      link.textContent = category.name;
       return link;
     }));
   }
@@ -1242,6 +1352,7 @@
     const mobileFilters = window.matchMedia('(max-width: 800px)');
     const colorFilters = filterPanel?.querySelector('[data-color-filters]');
     const sizeFilters = filterPanel?.querySelector('[data-size-filters]');
+    const sortControl = document.querySelector('[data-product-sort]');
     const categorySlug = list.dataset.category;
     const categoryProducts = products.filter((item) => !categorySlug || item.category.slug === categorySlug);
     const createFilter = (container, name, value) => {
@@ -1280,6 +1391,13 @@
           && (!selectedColors.length || selectedColors.includes(color))
           && (!selectedSizes.length || selectedSizes.some((size) => hasStock(item, color, size))));
       });
+      const sortOrder = sortControl?.value || 'featured';
+      matches.sort((left, right) => {
+        if (sortOrder === 'price-ascending') return left.price - right.price;
+        if (sortOrder === 'price-descending') return right.price - left.price;
+        if (sortOrder === 'name') return left.name.localeCompare(right.name, 'pt-BR');
+        return Number(right.featured) - Number(left.featured) || left.name.localeCompare(right.name, 'pt-BR');
+      });
       const count = document.querySelector('[data-product-count]');
       if (count) count.textContent = `${matches.length} ${matches.length === 1 ? 'produto' : 'produtos'}`;
       const applyButton = filterPanel?.querySelector('[data-apply-filters]');
@@ -1296,6 +1414,7 @@
     };
 
     filterPanel?.addEventListener('change', renderFilteredProducts);
+    sortControl?.addEventListener('change', renderFilteredProducts);
     filterPanel?.addEventListener('input', (event) => {
       if (event.target.matches('#price-min, #price-max')) renderFilteredProducts();
     });
@@ -1365,12 +1484,44 @@
     return product.colors.find((color) => normalizeColor(color) === normalizeColor(imageRecord?.color)) || '';
   }
 
+  function renderProductThumbnails(color, selectedImage) {
+    const thumbnailList = document.querySelector('.product-thumbnails');
+    if (!thumbnailList) return;
+    const colorImages = product.imagesList.filter((image) => imageColorVariant(image) === color);
+    const detailImages = colorImages.length ? colorImages : product.imagesList;
+    thumbnailList.replaceChildren(...detailImages.map((imageRecord, index) => {
+      const button = document.createElement('button');
+      const productImageIndex = product.imagesList.indexOf(imageRecord);
+      button.className = 'product-thumb';
+      button.type = 'button';
+      button.dataset.productImageIndex = String(productImageIndex);
+      const imageColor = imageColorVariant(imageRecord);
+      button.setAttribute('aria-label', `Ver foto ${index + 1} de ${product.name}${imageColor ? `, cor ${imageColor}` : ''}`);
+      button.setAttribute('aria-pressed', 'false');
+      const thumbnailImage = document.createElement('img');
+      thumbnailImage.src = productImageUrl(imageRecord.imageUrl);
+      thumbnailImage.alt = '';
+      const colorLabel = document.createElement('span');
+      colorLabel.textContent = imageColor || `Foto ${index + 1}`;
+      button.append(thumbnailImage, colorLabel);
+      return button;
+    }));
+    if (detailImages.includes(selectedImage)) showProductImage(selectedImage);
+  }
+
   function selectProductColor(color, selectedImage = null) {
-    const imageRecord = product.imagesList.find((image) => imageColorVariant(image) === color);
-    showProductImage(selectedImage || imageRecord || product.imagesList[0]);
+    const colorImages = product.imagesList.filter((image) => imageColorVariant(image) === color);
+    const imageRecord = (selectedImage && colorImages.includes(selectedImage) ? selectedImage : null)
+      || colorImages[0] || product.imagesList[0];
     const selectedColor = document.querySelector('#selected-color');
     if (selectedColor) selectedColor.textContent = color;
+    document.querySelectorAll('[data-product-color]').forEach((button) => {
+      const selected = button.dataset.productColor === color;
+      button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
     renderProductSizes(color, document.querySelector('#selected-size')?.textContent.trim() || '');
+    renderProductThumbnails(color, imageRecord);
   }
 
   function showProductImage(imageRecord) {
@@ -1393,7 +1544,7 @@
     if (!document.querySelector('.product-detail')) return;
     const colors = product.colors;
     const firstAvailableColor = colors.find((color) => product.variants.some((variant) => variant.color === color && variant.stock > 0)) || colors[0];
-    const thumbnailList = document.querySelector('.product-thumbnails');
+    const colorOptions = document.querySelector('[data-product-colors]');
     const title = document.querySelector('.product-info h1');
     const watchMeasurements = product.watchMeasurements;
     const watchMeasurementsButton = document.querySelector('[data-open-watch-measurements]');
@@ -1413,6 +1564,7 @@
       });
     }
     if (title) title.textContent = product.name;
+    document.querySelector('.product-detail')?.classList.toggle('is-watch', product.productType === 'WATCH');
     document.title = `${product.name} | FSI Studio`;
     const productName = document.querySelector('[data-product-name]');
     if (productName) productName.textContent = product.name;
@@ -1429,21 +1581,14 @@
     }
     const categoryLabel = document.querySelector('[data-product-category]');
     if (categoryLabel) categoryLabel.textContent = product.category.name;
-    const detailImages = product.imagesList;
-    if (thumbnailList) thumbnailList.replaceChildren(...detailImages.map((imageRecord, index) => {
+    if (colorOptions) colorOptions.replaceChildren(...colors.map((color) => {
       const button = document.createElement('button');
-      button.className = 'product-thumb';
+      button.className = 'product-color-option';
       button.type = 'button';
-      button.dataset.productImageIndex = String(index);
-      const color = imageColorVariant(imageRecord);
-      button.setAttribute('aria-label', `Ver foto ${index + 1} de ${product.name}${color ? `, cor ${color}` : ''}`);
+      button.dataset.productColor = color;
+      button.textContent = color;
       button.setAttribute('aria-pressed', 'false');
-      const thumbnailImage = document.createElement('img');
-      thumbnailImage.src = productImageUrl(imageRecord.imageUrl);
-      thumbnailImage.alt = '';
-      const colorLabel = document.createElement('span');
-      colorLabel.textContent = color || `Foto ${index + 1}`;
-      button.append(thumbnailImage, colorLabel);
+      button.addEventListener('click', () => selectProductColor(color));
       return button;
     }));
     const price = document.querySelector('.product-price-large');
@@ -1452,6 +1597,13 @@
     if (originalPrice) {
       originalPrice.hidden = product.promotionalPriceCents == null;
       originalPrice.textContent = product.promotionalPriceCents == null ? '' : formatMoney(product.originalPrice);
+    }
+    const discount = document.querySelector('[data-price-discount]');
+    if (discount) {
+      discount.hidden = product.promotionalPriceCents == null;
+      discount.textContent = product.promotionalPriceCents == null
+        ? ''
+        : `${Math.round((1 - product.price / product.originalPrice) * 100)}% OFF`;
     }
     const colorLabel = document.querySelector('#selected-color');
     if (colorLabel) colorLabel.textContent = firstAvailableColor;
@@ -1726,7 +1878,7 @@
     confirmation.querySelector('[data-order-heading]').textContent = order.paymentStatus === 'RECEIVED'
       ? 'Pagamento confirmado.'
       : order.paymentStatus === 'PENDING'
-        ? 'Finalize seu pagamento Pix.'
+        ? 'Aguardando confirmação do pagamento.'
         : 'Atualização do seu pedido.';
     confirmation.querySelector('[data-order-status-message]').textContent = order.paymentStatus === 'PROCESSING'
       ? 'Estamos gerando o código Pix. Aguarde a atualização antes de tentar novamente.'
@@ -1737,7 +1889,7 @@
           : order.paymentStatus === 'PENDING'
       ? !order.pixQrCode || !order.pixPayload
         ? 'O Pix foi preparado. Estamos carregando o QR Code; esta página tentará novamente automaticamente.'
-        : 'Aguardando a conferência manual do crédito no banco. Pague somente uma vez usando o QR Code ou código Pix abaixo.'
+        : 'Se você já pagou, aguarde: a loja marcará o pedido como pago assim que confirmar o crédito no banco. Não precisa pagar novamente. Esta página será atualizada automaticamente.'
         : order.paymentStatus === 'RECEIVED'
           ? 'A loja conferiu o crédito no banco. A preparação e a postagem ainda precisam acontecer.'
           : 'O status do pagamento foi atualizado. Entre em contato com a loja para obter ajuda.';
@@ -1844,7 +1996,6 @@
       initializeGenericCategory();
       initializeProductListing();
       initializeFeaturedProducts();
-      initializeStyleGuideProduct();
       if (document.querySelector('.product-detail')) {
         if (product) initializeProductDetail();
         else {

@@ -19,7 +19,7 @@
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   color: var(--ink);
   background:
     radial-gradient(circle at top left, rgba(228, 173, 160, 0.18), transparent 28%),
@@ -441,8 +441,8 @@ img { display: block; max-width: 100%; }
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.program-card:hover,
-.program-card:focus-visible {
+a.program-card:hover,
+a.program-card:focus-visible {
   transform: translateY(-4px);
   box-shadow: 0 18px 28px rgba(36,29,40,0.08);
 }
